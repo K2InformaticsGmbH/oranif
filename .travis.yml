@@ -9,7 +9,7 @@ before_install:
  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
  - sudo apt-get install alien
- - sudo apt-get install tree
+ #- sudo apt-get install tree
  - sudo apt-get update
  - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
 
@@ -34,10 +34,10 @@ script:
  - export ERL_INTERFACE_DIR="${ERL_INTERFACE_DIR:0:$((${#ERL_INTERFACE_DIR} - 1))}"
  - export OTP_ERTS_DIR="${OTP_ERTS_DIR:0:$((${#OTP_ERTS_DIR} - 1))}"
  - ./rebar3 version
- - tree $ERL_INTERFACE_DIR/include
- - tree $ERL_INTERFACE_DIR/lib
- - tree $OTP_ERTS_DIR/include
- # - ./rebar3 compile
+ #- tree $ERL_INTERFACE_DIR/include
+ #- tree $ERL_INTERFACE_DIR/lib
+ #- tree $OTP_ERTS_DIR/include
+ - ./rebar3 compile
  #- docker pull konnexionsgmbh/db_12_2
  #- docker images
  #- docker create --name oranif_db -p 1521:1521/tcp -e ORACLE_PWD=oracle konnexionsgmbh/db_12_2
@@ -51,4 +51,4 @@ script:
  #- cd test/install/oracle/db-sample-schemas-12.2.0.1
  #- perl -p -i.bak -e 's#__SUB__CWD__#'$(pwd)'#g' *.sql */*.sql */*.dat
  #- echo exit | sqlplus sys/oracle@$DOCKER_MACHINE_IP:1521/orclpdb1 as sysdba @mksample oracle oracle oracle oracle oracle oracle oracle oracle users temp $(pwd)/log/ $DOCKER_MACHINE_IP:1521/orclpdb1
- - cd ../../../..
+ #- cd ../../../..
