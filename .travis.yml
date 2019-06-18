@@ -17,7 +17,7 @@ install:
  - wget https://s3.amazonaws.com/rebar3/rebar3 && chmod +x rebar3
 
 env:
- - DOCKER_MACHINE_STATUS="Running" DOCKER_MACHINE_IP="0.0.0.0" ERL_INTERFACE_DIR="$(ls -d /usr/lib/erlang/lib/erl_interface*/)" ERL_INTERFACE_DIR="${ERL_INTERFACE_DIR:0:$((${#ERL_INTERFACE_DIR} - 1))}"
+ - DOCKER_MACHINE_STATUS="Running" DOCKER_MACHINE_IP="0.0.0.0"
 
 language: erlang
 otp_release:
@@ -29,9 +29,14 @@ before_script:
  - kerl list installations
 
 script:
+ - ERL_INTERFACE_DIR="$(ls -d ~/otp/$TRAVIS_OTP_RELEASE/lib/erl_interface*/)"
+ - OTP_ERTS_DIR="$(ls -d ~/otp/$TRAVIS_OTP_RELEASE/erts*/)"
+ - export ERL_INTERFACE_DIR="${ERL_INTERFACE_DIR:0:$((${#ERL_INTERFACE_DIR} - 1))}"
+ - export OTP_ERTS_DIR="${OTP_ERTS_DIR:0:$((${#OTP_ERTS_DIR} - 1))}"
  - ./rebar3 version
- - tree $ERL_INTERFACE_DIR
- - ls -alF /usr/lib/erlang/lib/
+ - tree $ERL_INTERFACE_DIR/include
+ - tree $ERL_INTERFACE_DIR/lib
+ - tree $OTP_ERTS_DIR/include
  # - ./rebar3 compile
  #- docker pull konnexionsgmbh/db_12_2
  #- docker images
