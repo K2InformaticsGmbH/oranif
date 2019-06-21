@@ -33,12 +33,11 @@ script:
  - OTP_ERTS_DIR="$(ls -d ~/otp/$TRAVIS_OTP_RELEASE/erts*/)"
  - export ERL_INTERFACE_DIR="${ERL_INTERFACE_DIR:0:$((${#ERL_INTERFACE_DIR} - 1))}"
  - export OTP_ERTS_DIR="${OTP_ERTS_DIR:0:$((${#OTP_ERTS_DIR} - 1))}"
- - ls $OTP_ERTS_DIR/bin/
- - echo ./$OTP_ERTS_DIR/bin/epmd
  - sudo chmod +x $OTP_ERTS_DIR/bin/epmd
  - $OTP_ERTS_DIR/bin/epmd &
  - ./rebar3 version
  - ./rebar3 as test compile
+ - ls ./priv
  - tree _build
  - ./rebar3 eunit
  #- tree $ERL_INTERFACE_DIR/include
