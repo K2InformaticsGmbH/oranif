@@ -39,6 +39,7 @@ script:
  - ./rebar3 as test compile
  - ls ./priv
  - tree _build
+ - export LD_LIBRARY_PATH=./priv/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
  - ./rebar3 eunit
  #- tree $ERL_INTERFACE_DIR/include
  #- tree $ERL_INTERFACE_DIR/lib
