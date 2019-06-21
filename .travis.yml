@@ -36,15 +36,11 @@ script:
  - sudo chmod +x $OTP_ERTS_DIR/bin/epmd
  - $OTP_ERTS_DIR/bin/epmd &
  - ./rebar3 version
- - ./rebar3 compile
- - ls ./c_src/odpi/build
- - ls ./c_src/odpi/lib
- - tree _build
- #- export LD_LIBRARY_PATH=./priv/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
- #- ./rebar3 eunit
- #- tree $ERL_INTERFACE_DIR/include
- #- tree $ERL_INTERFACE_DIR/lib
- #- tree $OTP_ERTS_DIR/include
+ - ./rebar3 as test compile
+ #- tree _build
+ - export LD_LIBRARY_PATH=./priv/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+ - export LD_LIBRARY_PATH=./c_src/odpi/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+ - ./rebar3 eunit
  #- docker pull konnexionsgmbh/db_12_2
  #- docker images
  #- docker create --name oranif_db -p 1521:1521/tcp -e ORACLE_PWD=oracle konnexionsgmbh/db_12_2
