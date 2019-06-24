@@ -9,11 +9,9 @@ ifndef OTP_ERTS_DIR
 $(error OTP_ERTS_DIR is not set)
 endif
 
-OBJS = $(O)/dpi_nif.o $(O)/dpiContext_nif.o $(O)/dpiConn_nif.o $(O)/dpiStmt_nif.o $(O)/dpiData_nif.o $(O)/dpiQueryInfo_nif.o $(O)/dpiVar_nif.o
-TARGETS = $(O)/dpi_nif.so
+ORANIF_SRCS = $(wildcard  $(S)/*.c)
 
-TEST_OBJS = test/odpi_test.o
-TEST_TARGETS = test/odpi_test
+TARGETS = $(O)/dpi_nif.so
 
 BASECXXFLAGS = -ggdb -Wall -fPIC -shared -std=c11
 INCLUDEDIRS = -I$(S) -I"$(OTP_ERTS_DIR)/include" -I"$(S)/odpi/include"
@@ -28,15 +26,10 @@ else
 	LINKFLAGS = $(BASELINKFLAGS)
 endif
 
-#all: priv $(TEST_TARGETS) $(TARGETS)
 all: priv $(TARGETS)
-
-ORANIF_SRCS = $(OBJS:$(O)/%.o=$(S)/%.c)
 
 $(TARGETS): odpi $(ORANIF_SRCS)
 	gcc -o $@ $(CXXFLAGS) $(INCLUDEDIRS) $(LINKDIRS) $(ORANIF_SRCS) $(LINKFLAGS)
-
-#$(TEST_TARGETS): odpi $(TEST_OBJS)
 
 priv:
 	$(MKDIR_P) $(O)
