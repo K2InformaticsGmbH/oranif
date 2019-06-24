@@ -27,7 +27,7 @@ before_script:
  - kerl list installations
 
 script:
- - wget -P /tmp -r -np -R https://github.com/K2InformaticsGmbH/oranif/wiki/travis/
+ - wget -P /tmp -r -np -R "index.html*" https://github.com/K2InformaticsGmbH/oranif/wiki/travis/
  - sudo apt install /tmp/travis/oracle-instantclient19.3-basic_19.3.0.0.0-2_amd64.deb
  - sudo apt install /tmp/travis/oracle-instantclient19.3-sqlplus_19.3.0.0.0-2_amd64.deb
  - docker pull konnexionsgmbh/db_12_2
