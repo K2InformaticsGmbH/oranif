@@ -53,12 +53,25 @@ unload() ->
 
 load_unsafe() ->
     PrivDir = case code:priv_dir(?MODULE) of
-		{error, _} ->
-		    EbinDir = filename:dirname(code:which(?MODULE)),
-		    AppPath = filename:dirname(EbinDir),
-		    filename:join(AppPath, "priv");
-		Path -> Path
-	end,
+        {error, _} ->
+            io:format(
+                user, "{~p,~p,~p} priv not found~n",
+                [?MODULE, ?FUNCTION_NAME, ?LINE]
+            ),
+            EbinDir = filename:dirname(code:which(?MODULE)),
+            AppPath = filename:dirname(EbinDir),
+            filename:join(AppPath, "priv");
+        Path ->
+            io:format(
+                user, "{~p,~p,~p} priv found ~p~n",
+                [?MODULE, ?FUNCTION_NAME, ?LINE, Path]
+            ),
+            Path
+    end,
+    io:format(
+        user, "{~p,~p,~p} PrivDir ~p~n",
+        [?MODULE, ?FUNCTION_NAME, ?LINE, PrivDir]
+    ),
     case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), 0) of
         ok -> ok;
         {error, {reload, _}} -> ok;
