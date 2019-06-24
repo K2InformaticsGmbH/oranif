@@ -8,8 +8,8 @@ services:
 before_install:
  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
- #- sudo apt-get install alien
- - sudo apt-get install tree
+ - sudo apt-get install alien
+ #- sudo apt-get install tree
  #- sudo apt-get update
  #- sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
 
@@ -29,27 +29,31 @@ before_script:
  - kerl list installations
 
 script:
- - ERL_INTERFACE_DIR="$(ls -d ~/otp/$TRAVIS_OTP_RELEASE/lib/erl_interface*/)"
- - OTP_ERTS_DIR="$(ls -d ~/otp/$TRAVIS_OTP_RELEASE/erts*/)"
- - export ERL_INTERFACE_DIR="${ERL_INTERFACE_DIR:0:$((${#ERL_INTERFACE_DIR} - 1))}"
- - export OTP_ERTS_DIR="${OTP_ERTS_DIR:0:$((${#OTP_ERTS_DIR} - 1))}"
- - sudo chmod +x $OTP_ERTS_DIR/bin/epmd
- - $OTP_ERTS_DIR/bin/epmd &
- - ./rebar3 version
- - ./rebar3 as test compile
+ - cd ~/tmp
+ - wget http://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient19.3-basic-19.3.0.0.0-1.x86_64.rpm
+ - wget http://yum.oracle.com/repo/OracleLinux/OL7/oracle/instantclient/x86_64/getPackage/oracle-instantclient19.3-sqlplus-19.3.0.0.0-1.x86_64.rpm
+ - sudo alien -i ~/tmp/oracle-instantclient19.3-basic-19.3.0.0.0-1.x86_64.rpm
+ - sudo alien -i ~/tmp/oracle-instantclient19.3-sqlplus-19.3.0.0.0-1.x86_64.rpm
+ - export LD_LIBRARY_PATH=/usr/lib/oracle/19.3/client64/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+ - echo $LD_LIBRARY_PATH
+ #- ERL_INTERFACE_DIR="$(ls -d ~/otp/$TRAVIS_OTP_RELEASE/lib/erl_interface*/)"
+ #- OTP_ERTS_DIR="$(ls -d ~/otp/$TRAVIS_OTP_RELEASE/erts*/)"
+ #- export ERL_INTERFACE_DIR="${ERL_INTERFACE_DIR:0:$((${#ERL_INTERFACE_DIR} - 1))}"
+ #- export OTP_ERTS_DIR="${OTP_ERTS_DIR:0:$((${#OTP_ERTS_DIR} - 1))}"
+ #- sudo chmod +x $OTP_ERTS_DIR/bin/epmd
+ #- $OTP_ERTS_DIR/bin/epmd &
+ #- ./rebar3 version
+ #- ./rebar3 as test compile
  #- tree _build
- - export LD_LIBRARY_PATH=./priv/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
- - export LD_LIBRARY_PATH=./c_src/odpi/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
- - ./rebar3 eunit
+ #- export LD_LIBRARY_PATH=./priv/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+ #- export LD_LIBRARY_PATH=./c_src/odpi/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+ #- ./rebar3 eunit
  #- docker pull konnexionsgmbh/db_12_2
  #- docker images
  #- docker create --name oranif_db -p 1521:1521/tcp -e ORACLE_PWD=oracle konnexionsgmbh/db_12_2
  #- docker start oranif_db
  #- for ((i = 1; i<=7; i++)) do docker ps -a; sleep 60; done
  #- docker ps
- #- sudo alien -i test/install/oracle/oracle-instantclient19.3-basic-19.3.0.0.0-1.x86_64.rpm
- #- sudo alien -i test/install/oracle/oracle-instantclient19.3-sqlplus-19.3.0.0.0-1.x86_64.rpm
- #- export LD_LIBRARY_PATH=/usr/lib/oracle/19.3/client64/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
  #- sudo ldconfig
  #- cd test/install/oracle/db-sample-schemas-12.2.0.1
  #- perl -p -i.bak -e 's#__SUB__CWD__#'$(pwd)'#g' *.sql */*.sql */*.dat
