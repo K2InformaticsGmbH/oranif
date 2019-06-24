@@ -51,7 +51,8 @@ script:
  - ./rebar3 as test compile
  - export LD_LIBRARY_PATH=./priv/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
  - export LD_LIBRARY_PATH=./c_src/odpi/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
- - for ((i = 1; i <= 7; i++)) do docker ps -a; sleep 60; done
+ #- for ((i = 1; i <= 7; i++)) do docker ps -a; sleep 60; done
+ - while [ "`docker inspect -f {{.State.Health.Status}} oranif_db`" != "healthy" ]; do docker ps -a; do sleep 60; done
  - docker ps
  - sudo ldconfig
  - cd /tmp/db-sample-schemas-12.2.0.1
