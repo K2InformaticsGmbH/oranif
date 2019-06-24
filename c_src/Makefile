@@ -30,7 +30,7 @@ all: priv $(TARGETS)
 ORANIF_SRCS = $(OBJS:$(O)/%.o=$(S)/%.c)
 
 $(TARGETS): odpi $(ORANIF_SRCS)
-	gcc -o $@ $(CXXFLAGS) $(INCLUDEDIRS) $(LINKDIRS) $(LINKFLAGS) $(ORANIF_SRCS)
+	gcc -o $@ $(CXXFLAGS) $(INCLUDEDIRS) $(LINKDIRS) $(ORANIF_SRCS) $(LINKFLAGS)
 
 #$(TEST_TARGETS): odpi $(TEST_OBJS)
 
