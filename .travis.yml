@@ -29,9 +29,10 @@ before_script:
  - kerl list installations
 
 script:
- - cd /tmp
- - sudo apt install https://github.com/K2InformaticsGmbH/oranif/wiki/travis/oracle-instantclient19.3-basic_19.3.0.0.0-2_amd64.deb
- - sudo apt install https://github.com/K2InformaticsGmbH/oranif/wiki/travis/oracle-instantclient19.3-sqlplus_19.3.0.0.0-2_amd64.deb
+ - wget -P /tmp https://github.com/K2InformaticsGmbH/oranif/wiki/travis/oracle-instantclient19.3-basic_19.3.0.0.0-2_amd64.deb
+ - wget -P /tmp https://github.com/K2InformaticsGmbH/oranif/wiki/travis/oracle-instantclient19.3-sqlplus_19.3.0.0.0-2_amd64.deb
+ - sudo apt install /tmp/oracle-instantclient19.3-basic_19.3.0.0.0-2_amd64.deb
+ - sudo apt install /tmp/oracle-instantclient19.3-sqlplus_19.3.0.0.0-2_amd64.deb
  - export LD_LIBRARY_PATH=/usr/lib/oracle/19.3/client64/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
  - echo $LD_LIBRARY_PATH
  #- ERL_INTERFACE_DIR="$(ls -d ~/otp/$TRAVIS_OTP_RELEASE/lib/erl_interface*/)"
