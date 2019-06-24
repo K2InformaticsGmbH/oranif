@@ -15,7 +15,7 @@ install:
  - wget https://s3.amazonaws.com/rebar3/rebar3 && chmod +x rebar3
 
 env:
- - DOCKER_MACHINE_STATUS="Running" DOCKER_MACHINE_IP="127.0.0.1"
+ - DOCKER_MACHINE_STATUS="Running" DOCKER_MACHINE_IP="0.0.0.0"
 
 language: erlang
 otp_release:
