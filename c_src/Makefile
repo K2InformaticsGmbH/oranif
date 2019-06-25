@@ -13,7 +13,7 @@ ODPI_LIB_DIR = $(S)/odpi/lib
 TARGET = $(O)/dpi_nif.so
 
 INCLUDEDIRS = -I$(S) -I"$(OTP_ERTS_DIR)/include" -I"$(S)/odpi/include"
-CFLAGS = $(INCLUDEDIRS) -O2 -ggdb -Wall -fPIC -std=c11
+CFLAGS = $(INCLUDEDIRS) -O2 -ggdb -Wall -fPIC -std=c11 --coverage
 LINKDIRS = -L$(ODPI_LIB_DIR)
 LDFLAGS  = $(LINKDIRS) -shared -lodpic
 

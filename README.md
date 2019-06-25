@@ -17,6 +17,10 @@ ORANIF_DEBUG=_verbosity_ rebar3 compile # debug log verbosity >= 1
 - Requires Oracle Client library installed, see https://oracle.github.io/odpi/doc/installation.html for installation instructions.
 - For OSX use `basic` as `basic-lite` didn't work in our tests.
 - Requires a C compiler supporting the c11 standard.
+- code coverage
+```sh
+gcov -o ./ c_src/*.c
+```
 
 #### Create Environment variables
 ```
