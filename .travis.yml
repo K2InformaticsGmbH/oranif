@@ -31,9 +31,9 @@ script:
  - docker images
  - docker create --name oranif_db -p 1521:1521/tcp -e ORACLE_PWD=oracle konnexionsgmbh/db_12_2
  - docker start oranif_db
- - wget -P /tmp https://github.com/K2InformaticsGmbH/oranif/wiki/travis/oracle-instantclient19.3-basic_19.3.0.0.0-2_amd64.deb
- - wget -P /tmp https://github.com/K2InformaticsGmbH/oranif/wiki/travis/oracle-instantclient19.3-sqlplus_19.3.0.0.0-2_amd64.deb
- - wget -P /tmp https://github.com/K2InformaticsGmbH/oranif/wiki/travis/db-sample-schemas-12.2.0.1.tgz
+ - wget -q -P /tmp https://github.com/K2InformaticsGmbH/oranif/wiki/travis/oracle-instantclient19.3-basic_19.3.0.0.0-2_amd64.deb
+ - wget -q -P /tmp https://github.com/K2InformaticsGmbH/oranif/wiki/travis/oracle-instantclient19.3-sqlplus_19.3.0.0.0-2_amd64.deb
+ - wget -q -P /tmp https://github.com/K2InformaticsGmbH/oranif/wiki/travis/db-sample-schemas-12.2.0.1.tgz
  - tar xzf /tmp/db-sample-schemas-12.2.0.1.tgz -C /tmp
  - sudo apt install /tmp/oracle-instantclient19.3-basic_19.3.0.0.0-2_amd64.deb
  - sudo apt install /tmp/oracle-instantclient19.3-sqlplus_19.3.0.0.0-2_amd64.deb
