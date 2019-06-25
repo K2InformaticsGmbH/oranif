@@ -258,7 +258,7 @@ stmt_getQueryInfo_test({Safe, _Context, Conn}) ->
     ?EXEC_STMT(Conn, <<"create table test_dpi6 (a integer, b integer, c varchar(32))">>), 
     ?EXEC_STMT(Conn, <<"insert into test_dpi6 values (10, 20, 'miau')">>), 
     
-    Stmt = dpiCall(Safe, conn_prepareStmt, [Conn, false, <<"select a, b as xyz, a+b, b / a, c, 'foobar' from test_dpi">>, <<"">>]),
+    Stmt = dpiCall(Safe, conn_prepareStmt, [Conn, false, <<"select a, b as xyz, a+b, b / a, c, 'foobar' from test_dpi6">>, <<"">>]),
     ?assertEqual(6, dpiCall(Safe, stmt_execute, [Stmt, []])),
 
     assert_getQueryInfo(Safe, Stmt, 1, "A", name),
