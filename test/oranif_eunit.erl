@@ -822,24 +822,27 @@ var_setNumElementsInArray_test({Safe, _Context, Conn}) ->
     ?EXEC_STMT(Conn, <<"insert into test_dpi17 values(footype(2, 4))">>),
     dpiCall(Safe, conn_commit, [Conn]).
 
-context_getClientVersion_test({Safe, Context, Conn}) -> 
+contextGetClientVersion_test({Safe, Context, Conn}) -> 
     #{
         releaseNum := CRNum, versionNum := CVNum, fullVersionNum := CFNum
     } = dpiCall(Safe, context_getClientVersion, [Context]),
 
-    ?assert(CRNum == 3 orelse CRNum == 2),
-    ?assert(CVNum == 18 orelse CVNum == 12),
-    ?assert(CFNum == 1803000000 orelse CFNum == 1202000000),
+    ?assert(is_integer(CRNum)),
+    ?assert(is_integer(CVNum)),
+    ?assert(is_integer(CRNum)).
 
-    ?assertMatch(
-        #{
-            releaseNum := 2, versionNum := 11, fullVersionNum := 1102000200,
-            portReleaseNum := 2, portUpdateNum := 0,
-            releaseString := "Oracle Database 11g Express Edition Release"
-                             " 11.2.0.2.0 - 64bit Production"
-        },
-        dpiCall(Safe, conn_getServerVersion, [Conn])
-    ).
+connGetServerVersion_test({Safe, Context, Conn}) -> 
+    #{
+        releaseNum := ReleaseNum, versionNum := VersionNum, fullVersionNum := FullVersionNum,
+        portReleaseNum := PortReleaseNum, portUpdateNum := PortUpdateNum,
+        releaseString := ReleaseString
+    } = dpiCall(Safe, conn_getServerVersion, [Conn]),
+    ?assert(is_integer(ReleaseNum)),
+    ?assert(is_integer(VersionNum)),
+    ?assert(is_integer(FullVersionNum)),
+    ?assert(is_integer(PortReleaseNum)),
+    ?assert(is_integer(PortUpdateNum)),
+    ?assert(is_list(ReleaseString)).
 
 -define(GET_QUERY_VALUE(_Stmt, _Index, _Value),
     (fun() ->
@@ -1088,7 +1091,8 @@ cleanup({Safe, Context, Connnnection}) ->
     ?F(data_get_test),
     ?F(data_setIsNull_test),
     ?F(var_setNumElementsInArray_test),
-    ?F(context_getClientVersion_test),
+    ?F(contextGetClientVersion_test),
+    ?F(connGetServerVersion_test),
     ?F(catch_error_message),
     ?F(catch_error_message_conn),
     ?F(stmt_getNumQueryColumns_test),
