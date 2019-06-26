@@ -60,11 +60,24 @@ unload() ->
 load_unsafe() ->
     PrivDir = case code:priv_dir(?MODULE) of
         {error, _} ->
+            io:format(
+                user, "{~p,~p,~p} priv not found~n",
+                [?MODULE, ?FUNCTION_NAME, ?LINE]
+            ),
             EbinDir = filename:dirname(code:which(?MODULE)),
             AppPath = filename:dirname(EbinDir),
             filename:join(AppPath, "priv");
-        Path -> Path
+        Path ->
+            io:format(
+                user, "{~p,~p,~p} priv found ~p~n",
+                [?MODULE, ?FUNCTION_NAME, ?LINE, Path]
+            ),
+            Path
     end,
+    io:format(
+        user, "{~p,~p,~p} PrivDir ~p~n",
+        [?MODULE, ?FUNCTION_NAME, ?LINE, PrivDir]
+    ),
     case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), 0) of
         ok -> ok;
         {error, {reload, _}} -> ok;
@@ -112,8 +125,8 @@ rpc_call(undefined, _Mod, _Fun, _Args) ->
     {error, slave_down};
 rpc_call(Node, Mod, Fun, Args) ->
     case (catch rpc:call(Node, Mod, Fun, Args)) of
-        {badrpc, {'EXIT', Error}} ->
-            {error, Error};
+        {badrpc, {'EXIT', {Error, _}}} ->
+            error(Error);
         {badrpc, nodedown} ->
             erase(dpi_node),
             {error, slave_down};
