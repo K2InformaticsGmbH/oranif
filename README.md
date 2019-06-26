@@ -1,4 +1,5 @@
-# oranif
+# oranif [![Build Status](https://travis-ci.org/K2InformaticsGmbH/oranif.svg?branch=travis_integration)](https://travis-ci.org/K2InformaticsGmbH/oranif)
+
 Oracle Call Interface driver using dirty NIFs. Requires Erlang/OTP 20 or later with full dirty nif support.
 
 ## Development
