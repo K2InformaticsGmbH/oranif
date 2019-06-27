@@ -1,9 +1,9 @@
 -module(dpi).
 -compile({parse_transform, dpi_transform}).
 
--export([load/1, unload/0]).
+-export([load/1, unload/0, register_process/1, pids_get/0]).
 
--export([load_unsafe/0]).
+-export([load_unsafe/0, load_unsafe/1]).
 -export([safe/1, safe/2, safe/3]).
 
 -include("dpiContext.hrl").
@@ -30,7 +30,7 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
                                 SlaveNode, code, add_paths, [code:get_path()]
                             ),
                             rpc_call(
-                                SlaveNode, dpi, load_unsafe, []
+                                SlaveNode, dpi, load_unsafe, [self()]
                             ),
                             ok;
                         {error, {already_running, SlaveNode}} ->
@@ -40,9 +40,8 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
                     end
             end;
         SlaveNode ->
-            case catch rpc_call(SlaveNode, erlang, monotonic_time, []) of
-                Time when is_integer(Time) ->
-                    ok;
+            case catch rpc_call(SlaveNode, dpi, register_process, [self()]) of
+                ok -> ok;
                 _ ->
                     catch unload(),
                     load(SlaveNodeName)
@@ -51,13 +50,19 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
 
 unload() ->
     SlaveNode = erase(dpi_node),
-    slave:stop(SlaveNode).
+    Self = self(),
+    case catch rpc_call(SlaveNode, dpi, pids_get, []) of
+        [] -> slave:stop(SlaveNode);
+        [Self] -> slave:stop(SlaveNode);
+        Refs -> io:format("~p still referencing ~p~n", [Refs, SlaveNode])
+    end.
 
 %===============================================================================
 %   NIF test / debug interface (DO NOT use in production)
 %===============================================================================
 
-load_unsafe() ->
+load_unsafe() -> load_unsafe(self()).
+load_unsafe(RemotePid) ->
     PrivDir = case code:priv_dir(?MODULE) of
         {error, _} ->
             EbinDir = filename:dirname(code:which(?MODULE)),
@@ -66,10 +71,30 @@ load_unsafe() ->
         Path -> Path
     end,
     case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), 0) of
-        ok -> ok;
+        ok -> register_process(RemotePid);
         {error, {reload, _}} -> ok;
         {error, Error} -> {error, Error}
     end.
+
+-spec(pids_get() -> [pid()]).
+pids_get() ->
+    exit({nif_library_not_loaded, dpi, pids_get}).
+
+-spec(pids_set([pid()]) -> ok).
+pids_set(Pids) when is_list(Pids)  ->
+    exit({nif_library_not_loaded, dpi, pids_set}).
+
+register_process(Pid) ->
+    pids_set(
+        lists:filter(
+            fun(P) ->
+                true == (catch rpc:call(
+                    node(P), erlang, is_process_alive, [P]
+                ))
+            end,
+            [Pid | pids_get()]
+        )
+    ).
 
 %===============================================================================
 %   local helper functions
