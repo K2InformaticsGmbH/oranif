@@ -1147,37 +1147,100 @@ stop([Context, Conn]) ->
     dpi:context_destroy(Context),
     ok.
 
-eunit_test_() ->    
-    [?_assertEqual(ok, s()),
-     {foreach, fun start/0, fun stop/1, [
-        fun simple_fetch/1,
-        fun create_insert_select_drop/1, 
-        fun truncate_table/1,
-        fun drop_nonexistent_table/1,
-        fun update_where/1,             
-        fun select_from_where/1,
-        fun get_column_names/1,         
-        fun bind_by_pos/1,                
-        fun bind_by_name/1,             
-        fun in_binding/1,
-        fun bind_datatypes/1,
-        fun fail_stmt_released_too_early/1,
-        fun tz_test/1,
-        fun define_type/1,
-        fun iterate/1,
-        fun commit_rollback/1,
-        fun ping_close/1,
-        fun var_define/1,
-        fun var_bind/1,
-        fun var_setFromBytes/1,
-        fun set_get_data_ptr/1,
-        fun data_is_null/1,
-        fun var_array/1,
-        fun client_server_version/1,
-        fun distributed/1,
-        fun catch_error_message/1,
-        fun catch_error_message_conn/1,
-        fun get_num_query_cols/1,
-        fun stored_procedure/1,
-        fun ref_cursor/1
-    ]}].
+%eunit_test_() ->    
+%    [?_assertEqual(ok, s()),
+%     {foreach, fun start/0, fun stop/1, [
+%        fun simple_fetch/1,
+%        fun create_insert_select_drop/1, 
+%        fun truncate_table/1,
+%        fun drop_nonexistent_table/1,
+%        fun update_where/1,             
+%        fun select_from_where/1,
+%        fun get_column_names/1,         
+%        fun bind_by_pos/1,                
+%        fun bind_by_name/1,             
+%        fun in_binding/1,
+%        fun bind_datatypes/1,
+%        fun fail_stmt_released_too_early/1,
+%        fun tz_test/1,
+%        fun define_type/1,
+%        fun iterate/1,
+%        fun commit_rollback/1,
+%        fun ping_close/1,
+%        fun var_define/1,
+%        fun var_bind/1,
+%        fun var_setFromBytes/1,
+%        fun set_get_data_ptr/1,
+%        fun data_is_null/1,
+%        fun var_array/1,
+%        fun client_server_version/1,
+%        fun distributed/1,
+%        fun catch_error_message/1,
+%        fun catch_error_message_conn/1,
+%        fun get_num_query_cols/1,
+%        fun stored_procedure/1,
+%        fun ref_cursor/1
+%    ]}].
+
+slave_reuse_test() ->
+    ?assertEqual(ok, dpi:load(eunit_slave)),
+    [SlaveNode] = nodes(hidden),
+    ?debugFmt("procs in NIF ~p", [dpi:safe(dpi, pids_get, [])]),
+
+    RxTO = 1000, % 5 seconds
+
+    Self = self(),
+    Pid1 = spawn(fun() -> slave_client_proc(Self) end),
+    Pid2 = spawn(fun() -> slave_client_proc(Self) end),
+    Pid3 = spawn(fun() -> slave_client_proc(Self) end),
+    Pid4 = spawn(fun() -> slave_client_proc(Self) end),
+
+    ?debugFmt("new procs ~p", [[Pid1, Pid2, Pid3, Pid4]]),
+    ?debugFmt("still procs in NIF ~p", [dpi:safe(dpi, pids_get, [])]),
+
+    Pid1 ! load,
+    Pid2 ! load,
+    Pid3 ! load,
+    Pid4 ! load,
+
+    ?assertEqual(ok, receive {Pid1, loaded} -> ok after RxTO -> timeout end),
+    ?assertEqual(ok, receive {Pid2, loaded} -> ok after RxTO -> timeout end),
+    ?assertEqual(ok, receive {Pid3, loaded} -> ok after RxTO -> timeout end),
+    ?assertEqual(ok, receive {Pid4, loaded} -> ok after RxTO -> timeout end),
+
+    ?debugFmt("new procs in NIF ~p", [dpi:safe(dpi, pids_get, [])]),
+    ?assertEqual(ok, dpi:unload()),
+    ?debugFmt("procs in NIF after test unload ~p", [dpi:safe(dpi, pids_get, [])]),
+
+    Pid1 ! unload,
+    Pid2 ! exit,
+    Pid3 ! exit,
+
+    ?assertEqual(ok, receive {Pid1, unloaded} -> ok after RxTO -> timeout end),
+    ?assertEqual(ok, receive {Pid2, exited} -> ok after RxTO -> timeout end),
+    ?assertEqual(ok, receive {Pid3, exited} -> ok after RxTO -> timeout end),
+
+    ?assertEqual(false, is_process_alive(Pid1)),
+    ?assertEqual(false, is_process_alive(Pid2)),
+    ?assertEqual(false, is_process_alive(Pid3)),
+
+    ?assertEqual([SlaveNode], nodes(hidden)),
+
+    Pid4 ! unload,
+    ?assertEqual(ok, receive {Pid4, unloaded} -> ok after RxTO -> timeout end),
+    ?assertEqual(false, is_process_alive(Pid4)),
+
+    ?assertEqual([], nodes(hidden)).
+    
+slave_client_proc(TestPid) ->
+    receive
+        load ->
+            ok = dpi:load(eunit_slave),
+            TestPid ! {self(), loaded},
+            slave_client_proc(TestPid);
+        unload ->
+            ok = dpi:unload(),
+            TestPid ! {self(), unloaded};
+        exit ->
+            TestPid ! {self(), exited}
+    end.
