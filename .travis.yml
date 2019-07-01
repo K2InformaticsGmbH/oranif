@@ -54,8 +54,8 @@ script:
  - sudo ldconfig
  - sleep 60
  - docker ps -a
- - cd /tmp/db-sample-schemas-12.2.0.1
- - perl -p -i.bak -e 's#__SUB__CWD__#'$(pwd)'#g' *.sql */*.sql */*.dat
- - echo exit | sqlplus sys/oracle@$DOCKER_MACHINE_IP:1521/orclpdb1 as sysdba @mksample oracle oracle oracle oracle oracle oracle oracle oracle users temp $(pwd)/log/ $DOCKER_MACHINE_IP:1521/orclpdb1
- - cd -
+ #- cd /tmp/db-sample-schemas-12.2.0.1
+ #- perl -p -i.bak -e 's#__SUB__CWD__#'$(pwd)'#g' *.sql */*.sql */*.dat
+ #- echo exit | sqlplus sys/oracle@$DOCKER_MACHINE_IP:1521/orclpdb1 as sysdba @mksample oracle oracle oracle oracle oracle oracle oracle oracle users temp $(pwd)/log/ $DOCKER_MACHINE_IP:1521/orclpdb1
+ #- cd -
  - ./rebar3 eunit
