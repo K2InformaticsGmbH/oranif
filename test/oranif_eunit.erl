@@ -1807,7 +1807,7 @@ dataGetBytes_test({Safe, _Context, Conn}) ->
     dpiCall(Safe, var_release, [Var]),
     ok.
 
-dataGetIBytes_NegativeDataType({Safe, _Context, Conn}) ->
+dataGetBytes_NegativeDataType({Safe, _Context, Conn}) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(Safe, data_getBytes, [foobar]))),
     ok.
@@ -2126,7 +2126,10 @@ cleanup_no_input({Safe}) ->
     ?F(dataGetInt64_test),
     ?F(dataGetInt64_NegativeDataType),
     ?F(dataGetInt64_NegativeFailCall),
-    ?F(dataGetInt64_viaPointer)
+    ?F(dataGetInt64_viaPointer),
+    ?F(dataGetBytes_test),
+    ?F(dataGetBytes_NegativeDataType),
+    ?F(dataGetBytes_NegativeFailCall)
 
 
 ]).
