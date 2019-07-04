@@ -1818,6 +1818,34 @@ dataGetBytes_NegativeFailCall({Safe, _Context, Conn}) ->
         (dpiCall(Safe, data_getBytes, [Conn]))),
     ok.
 
+dataRelease_test({Safe, _Context, Conn}) ->
+    Data = dpiCall(Safe, data_ctor, []),
+    ?assertEqual(ok,
+        (dpiCall(Safe, data_release, [Data]))),
+    ok.
+
+dataRelease_NegativeDataType({Safe, _Context, Conn}) ->
+    ?assertException(error, {error, _File, _Line, _Exception},
+        (dpiCall(Safe, data_release, [foobar]))),
+    ok.
+
+%% fails due to completely wrong reference
+dataRelease_NegativeFailCall({Safe, _Context, Conn}) ->
+    ?assertException(error, {error, _File, _Line, _Exception},
+        (dpiCall(Safe, data_release, [Conn]))),
+    ok.
+
+dataRelease_viaPointer({Safe, _Context, Conn}) ->
+    #{var := Var, data := [Data]} = dpiCall(
+        Safe, conn_newVar, [
+            Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 1, 1,
+            true, true, null
+        ]
+    ),
+    ?assertEqual(ok,
+        (dpiCall(Safe, data_release, [Data]))),
+    dpiCall(Safe, var_release, [Var]),
+    ok.
 
 
 
@@ -2129,7 +2157,11 @@ cleanup_no_input({Safe}) ->
     ?F(dataGetInt64_viaPointer),
     ?F(dataGetBytes_test),
     ?F(dataGetBytes_NegativeDataType),
-    ?F(dataGetBytes_NegativeFailCall)
+    ?F(dataGetBytes_NegativeFailCall),
+    ?F(dataRelease_test),
+    ?F(dataRelease_NegativeDataType),
+    ?F(dataRelease_NegativeFailCall),
+    ?F(dataRelease_viaPointer)
 
 
 ]).
