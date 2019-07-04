@@ -255,14 +255,10 @@ connCommit_NegativeConnType({Safe, _Context, Conn}) ->
         dpiCall(Safe, conn_commit, [foobar])),
     ok.
 
-%% fails due to the Conn being invalid, it is freed before doing the call
+%% fails due to the reference being wrong
 connCommit_NegativeFailCall({Safe, Context, _Conn}) ->
-    #{tns := Tns, user := User, password := Password} = getConfig(),
-    Conn = dpiCall(Safe, conn_create, [Context, User, Password, Tns,
-            #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
-            dpiCall(Safe, conn_release, [Conn]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(Safe, conn_commit, [Conn])),
+        dpiCall(Safe, conn_commit, [Context])),
     ok.
 
 connRollback_test({Safe, _Context, Conn}) ->
@@ -275,14 +271,10 @@ connRollback_NegativeConnType({Safe, _Context, Conn}) ->
         dpiCall(Safe, conn_rollback, [foobar])),
     ok.
 
-%% fails due to the Conn being invalid, it is freed before doing the call
+%% fails due to the reference being wrong
 connRollback_NegativeFailCall({Safe, Context, _Conn}) ->
-    #{tns := Tns, user := User, password := Password} = getConfig(),
-    Conn = dpiCall(Safe, conn_create, [Context, User, Password, Tns,
-            #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
-            dpiCall(Safe, conn_release, [Conn]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(Safe, conn_rollback, [Conn])),
+        dpiCall(Safe, conn_rollback, [Context])),
     ok.
 
 connPing_test({Safe, _Context, Conn}) ->
@@ -295,14 +287,10 @@ connPing_NegativeConnType({Safe, _Context, Conn}) ->
         dpiCall(Safe, conn_ping, [foobar])),
     ok.
 
-%% fails due to the Conn being invalid, it is freed before doing the call
+%% fails due to the reference being wrong
 connPing_NegativeFailCall({Safe, Context, _Conn}) ->
-    #{tns := Tns, user := User, password := Password} = getConfig(),
-    Conn = dpiCall(Safe, conn_create, [Context, User, Password, Tns,
-            #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
-            dpiCall(Safe, conn_release, [Conn]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(Safe, conn_ping, [Conn])),
+        dpiCall(Safe, conn_ping, [Context])),
     ok.
 
 connRelease_test({Safe, Context, _Conn}) ->
@@ -320,12 +308,8 @@ connRelease_NegativeConnType({Safe, _Context, Conn}) ->
 
 %% fails due to the Conn being invalid, it was already released when it is supposed to be releases
 connRelease_NegativeFailCall({Safe, Context, _Conn}) ->
-    #{tns := Tns, user := User, password := Password} = getConfig(),
-    Conn = dpiCall(Safe, conn_create, [Context, User, Password, Tns,
-        #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
-    dpiCall(Safe, conn_release, [Conn]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(Safe, conn_release, [Conn])),
+        dpiCall(Safe, conn_release, [Context])),
     ok.
 
 connClose_test({Safe, Context, _Conn}) ->
@@ -369,14 +353,10 @@ connClose_NegativeTagType({Safe, _Context, Conn}) ->
         dpiCall(Safe, conn_close, [Conn, [], foobar])),
     ok.
 
-%% fails due to the Conn being invalid, it was already released when it is supposed to be releases
+%% fails due to the reference being wrong
 connClose_NegativeFailCall({Safe, Context, _Conn}) ->
-    #{tns := Tns, user := User, password := Password} = getConfig(),
-    Conn = dpiCall(Safe, conn_create, [Context, User, Password, Tns,
-        #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
-    dpiCall(Safe, conn_release, [Conn]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(Safe, conn_close, [Conn, [], <<"">>])),
+        dpiCall(Safe, conn_close, [Context, [], <<"">>])),
     ok.
 
 connGetServerVersion_test({Safe, _Context, Conn}) ->
@@ -811,12 +791,10 @@ stmtRelease_NegativeStmtType({Safe, _Context, Conn}) ->
     dpiCall(Safe, stmt_release, [Stmt]), %% cleanup
     ok.
 
-%% fails becasue the stmt was already released
+%% fails due to the reference being wrong
 stmtRelease_NegativeFailCall({Safe, _Context, Conn}) -> 
-    Stmt = dpiCall(Safe, conn_prepareStmt, [Conn, false, <<"making a statement">>, <<"">>]),
-    dpiCall(Safe, stmt_release, [Stmt]), %% release it beforehand this time
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(Safe, stmt_release, [Stmt])),
+        dpiCall(Safe, stmt_release, [Conn])),
     ok.
 
 stmtDefine_test({Safe, _Context, Conn}) -> 
@@ -1130,18 +1108,10 @@ varRelease_NegativeVarType({Safe, _Context, Conn}) ->
         dpiCall(Safe, var_release, [foobar])),
     ok.
 
-%% fails becaus the var has already been released
-varRelease_NegativeFailCall({Safe, _Context, Conn}) ->
-    #{var := Var, data := Data} = dpiCall(
-        Safe, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
-            true, true, null
-        ]
-    ),
-    [dpiCall(Safe, data_release, [X]) || X <- Data],
-    dpiCall(Safe, var_release, [Var]),
+%% fails due to the reference being wrong
+varRelease_NegativeFailCall({Safe, Context, Conn}) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(Safe, var_release, [Var])),
+        dpiCall(Safe, var_release, [Context])),
     ok.
 
 %%%
