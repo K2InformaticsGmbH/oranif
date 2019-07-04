@@ -1793,6 +1793,33 @@ dataGetInt64_viaPointer({Safe, _Context, Conn}) ->
     dpiCall(Safe, var_release, [Var]),
     ok.
 
+%% no non-pointer test for this one
+dataGetBytes_test({Safe, _Context, Conn}) ->
+    #{var := Var, data := [Data]} = dpiCall(
+        Safe, conn_newVar, [
+            Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 1, 1,
+            true, true, null
+        ]
+    ),
+    dpiCall(Safe, data_setIsNull, [Data, false]),
+    ?assert(is_binary(dpiCall(Safe, data_getBytes, [Data]))),
+    dpiCall(Safe, data_release, [Data]),
+    dpiCall(Safe, var_release, [Var]),
+    ok.
+
+dataGetIBytes_NegativeDataType({Safe, _Context, Conn}) ->
+    ?assertException(error, {error, _File, _Line, _Exception},
+        (dpiCall(Safe, data_getBytes, [foobar]))),
+    ok.
+
+%% fails due to completely wrong reference
+dataGetBytes_NegativeFailCall({Safe, _Context, Conn}) ->
+    ?assertException(error, {error, _File, _Line, _Exception},
+        (dpiCall(Safe, data_getBytes, [Conn]))),
+    ok.
+
+
+
 
 
 
