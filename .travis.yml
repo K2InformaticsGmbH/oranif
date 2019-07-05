@@ -20,7 +20,7 @@ env:
 
 language: erlang
 otp_release:
-  - 21.0
+  - 20.2
 
 before_script:
  - docker version
