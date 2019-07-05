@@ -13,6 +13,7 @@ before_install:
 
 install:
  - wget https://s3.amazonaws.com/rebar3/rebar3 && chmod +x rebar3
+ - gem install coveralls-lcov
 
 env:
  - DOCKER_MACHINE_STATUS="Running" DOCKER_MACHINE_IP="0.0.0.0"
@@ -25,6 +26,7 @@ before_script:
  - docker version
  - docker info
  - kerl list installations
+ - lcov --directory . --zerocounters
 
 script:
  - docker pull konnexionsgmbh/db_11_2_xe
@@ -55,3 +57,8 @@ script:
  - sudo chmod +x $OTP_ERTS_DIR/bin/epmd
  - $OTP_ERTS_DIR/bin/epmd &
  - ./rebar3 eunit
+
+after_success:
+ - lcov --directory . --capture --output-file coverage.info # capture coverage info
+ - lcov --list coverage.info # debug before upload
+ - coveralls-lcov coverage.info # uploads to coveralls
