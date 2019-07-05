@@ -1182,10 +1182,11 @@ stop([Context, Conn]) ->
 %        fun ref_cursor/1
 %    ]}].
 
+-define(NODE, testnode).
 slave_reuse_test() ->
-    ?assertEqual(ok, dpi:load(eunit_slave)),
-    [SlaveNode] = nodes(hidden),
-    ?debugFmt("procs in NIF ~p", [dpi:safe(dpi, pids_get, [])]),
+    ?assertEqual(ok, dpi:load_unsafe()),
+    put(dpi_node, node()),
+    ?debugFmt("procs in NIF ~p", [dpi:pids_get()]),
 
     RxTO = 1000, % 5 seconds
 
@@ -1195,8 +1196,7 @@ slave_reuse_test() ->
     Pid3 = spawn(fun() -> slave_client_proc(Self) end),
     Pid4 = spawn(fun() -> slave_client_proc(Self) end),
 
-    ?debugFmt("new procs ~p", [[Pid1, Pid2, Pid3, Pid4]]),
-    ?debugFmt("still procs in NIF ~p", [dpi:safe(dpi, pids_get, [])]),
+    ?assertEqual([self()], dpi:pids_get()),
 
     Pid1 ! load,
     Pid2 ! load,
@@ -1208,35 +1208,38 @@ slave_reuse_test() ->
     ?assertEqual(ok, receive {Pid3, loaded} -> ok after RxTO -> timeout end),
     ?assertEqual(ok, receive {Pid4, loaded} -> ok after RxTO -> timeout end),
 
-    ?debugFmt("new procs in NIF ~p", [dpi:safe(dpi, pids_get, [])]),
     ?assertEqual(ok, dpi:unload()),
-    ?debugFmt("procs in NIF after test unload ~p", [dpi:safe(dpi, pids_get, [])]),
+    ?assertEqual(
+        lists:usort([Pid1, Pid2, Pid3, Pid4]),
+        lists:usort(dpi:pids_get())
+    ),
 
     Pid1 ! unload,
     Pid2 ! exit,
-    Pid3 ! exit,
+    Pid3 ! unload,
+    Pid4 ! exit,
 
     ?assertEqual(ok, receive {Pid1, unloaded} -> ok after RxTO -> timeout end),
     ?assertEqual(ok, receive {Pid2, exited} -> ok after RxTO -> timeout end),
-    ?assertEqual(ok, receive {Pid3, exited} -> ok after RxTO -> timeout end),
+    ?assertEqual(ok, receive {Pid3, unloaded} -> ok after RxTO -> timeout end),
+    ?assertEqual(ok, receive {Pid4, exited} -> ok after RxTO -> timeout end),
 
     ?assertEqual(false, is_process_alive(Pid1)),
     ?assertEqual(false, is_process_alive(Pid2)),
     ?assertEqual(false, is_process_alive(Pid3)),
-
-    ?assertEqual([SlaveNode], nodes(hidden)),
-
-    Pid4 ! unload,
-    ?assertEqual(ok, receive {Pid4, unloaded} -> ok after RxTO -> timeout end),
     ?assertEqual(false, is_process_alive(Pid4)),
 
-    ?assertEqual([], nodes(hidden)).
+    ?assertEqual(
+        lists:usort([self(), Pid2, Pid3]),
+        lists:usort(dpi:pids_get())
+    ).
     
 slave_client_proc(TestPid) ->
     receive
         load ->
-            ok = dpi:load(eunit_slave),
+            ok = dpi:load(?NODE),
             TestPid ! {self(), loaded},
+            ?debugFmt("~p has ~p", [self(), dpi:safe(dpi, pids_get, [])]),
             slave_client_proc(TestPid);
         unload ->
             ok = dpi:unload(),

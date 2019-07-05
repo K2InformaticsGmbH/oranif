@@ -104,18 +104,28 @@ static ERL_NIF_TERM processes(
     CALL_TRACE;
 
     proc *p = (proc *)enif_priv_data(env);
-    D("proc %p, proc->env %p\r\n", p, p->env);
+    unsigned len;
     if (argc == 0) // pids_get
     {
+        if(!enif_get_list_length(p->env, p->pids, &len))
+            BADARG_EXCEPTION(0, "list length of p->pids");
+        D("p->pids has %u\r\n", len);
         RETURNED_TRACE;
         return p->pids;
     }
     if (argc == 1) // pids_set([pid()])
     {
         if (!enif_is_list(env, argv[0]))
-            BADARG_EXCEPTION(1, "list of pids");
+            BADARG_EXCEPTION(0, "list of pids");
+
+        if(!enif_get_list_length(env, argv[0], &len))
+            BADARG_EXCEPTION(0, "list length of pids");
+        D("argv[0] has %u\r\n", len);
 
         p->pids = enif_make_copy(p->env, argv[0]);
+        if(!enif_get_list_length(p->env, p->pids, &len))
+            BADARG_EXCEPTION(0, "list length of p->pids");
+        D("p->pids has %u\r\n", len);
 
         RETURNED_TRACE;
         return ATOM_OK;

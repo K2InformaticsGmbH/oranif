@@ -1,7 +1,7 @@
 -module(dpi).
 -compile({parse_transform, dpi_transform}).
 
--export([load/1, unload/0, register_process/1, pids_get/0]).
+-export([load/1, unload/0, register_process/1, pids_get/0, flush_process/0]).
 
 -export([load_unsafe/0, load_unsafe/1]).
 -export([safe/1, safe/2, safe/3]).
@@ -35,13 +35,15 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
                             ok;
                         {error, {already_running, SlaveNode}} ->
                             put(dpi_node, SlaveNode),
-                            ok;
+                            io:format(user, "~p~n", [{?MODULE, ?FUNCTION_NAME, ?LINE}]),
+                            slave_call(dpi, register_process, [self()]);
                         Error -> Error
                     end
             end;
         SlaveNode ->
-            case catch rpc_call(SlaveNode, dpi, register_process, [self()]) of
-                ok -> ok;
+            case catch rpc_call(SlaveNode, erlang, monotonic_time, []) of
+                Time when is_integer(Time) ->
+                    ok;
                 _ ->
                     catch unload(),
                     load(SlaveNodeName)
@@ -49,6 +51,7 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
     end.
 
 unload() ->
+    slave_call(dpi, flush_process, []),
     SlaveNode = erase(dpi_node),
     Self = self(),
     case catch rpc_call(SlaveNode, dpi, pids_get, []) of
@@ -85,16 +88,36 @@ pids_set(Pids) when is_list(Pids)  ->
     exit({nif_library_not_loaded, dpi, pids_set}).
 
 register_process(Pid) ->
-    pids_set(
-        lists:filter(
+    ExistingPids = pids_get(),
+    NewPids = lists:filter(
             fun(P) ->
-                true == (catch rpc:call(
+                true == rpc_call(
                     node(P), erlang, is_process_alive, [P]
-                ))
+                )
             end,
-            [Pid | pids_get()]
-        )
-    ).
+            [Pid | ExistingPids]
+        ),
+    io:format(
+        user, "~p: Adding ~p to ~p now ~p~n",
+        [{?MODULE, ?FUNCTION_NAME, ?LINE}, Pid, ExistingPids, NewPids]
+    ),
+    pids_set(NewPids).
+
+flush_process() ->
+    ExistingPids = pids_get(),
+    NewPids = lists:filter(
+            fun(P) ->
+                true == rpc_call(
+                    node(P), erlang, is_process_alive, [P]
+                )
+            end,
+            ExistingPids
+        ),
+    io:format(
+        user, "~p: flushing ~p to ~p~n",
+        [{?MODULE, ?FUNCTION_NAME, ?LINE}, ExistingPids, NewPids]
+    ),
+    pids_set(NewPids).
 
 %===============================================================================
 %   local helper functions
