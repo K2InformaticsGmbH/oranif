@@ -1176,7 +1176,6 @@ eunit_test_() ->
         fun simple_fetch/1,
         fun create_insert_select_drop/1, 
         fun truncate_table/1,
-        fun drop_nonexistent_table/1,
         fun update_where/1,             
         fun select_from_where/1,
         fun get_column_names/1,         
