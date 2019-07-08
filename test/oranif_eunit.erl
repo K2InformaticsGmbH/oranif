@@ -49,7 +49,7 @@ contextDestroy(TestCtx) ->
     ?assertEqual(ok, dpiCall(TestCtx, context_destroy, [Context])),
     ok.
 
-contextDestroy_NegativeContextType(TestCtx) ->
+contextDestroy_BadContext(TestCtx) ->
    ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, context_destroy, [foobar])),
     ok.
@@ -176,7 +176,7 @@ connPrepareStmt_emptyTag(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-connPrepareStmt_NegativeConnType({Safe, _Context, _Conn}) ->
+connPrepareStmt_NegativeConnType(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_prepareStmt, [foobar, false, <<"miau">>, <<"">>])),
     ok.
@@ -314,7 +314,7 @@ connClose(#{context := Context} = TestCtx) ->
     ?assertEqual(ok, Result),
     ok.
 
-connClose_testWithModes(#{context := Context} = TestCtx) ->
+connCloseWithModes(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     Conn = dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
         #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
@@ -394,7 +394,7 @@ stmtExecute(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtExecute_testWithModes(#{session := Conn} = TestCtx) ->
+stmtExecuteWithModes(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     QueryCols = dpiCall(TestCtx, stmt_execute, [Stmt, ['DPI_MODE_EXEC_DEFAULT']]),
     ?assertEqual(1, QueryCols),
@@ -421,7 +421,7 @@ stmtExecute_NegativeModeInsideType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to the SQL being invalid
-stmtExecute_NegativeFailCall({Safe, Context, Conn}) ->
+stmtExecute_NegativeFailCall(#{session := Conn, context := Context} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"all your base are belong to us">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_execute, [Stmt, []])),
@@ -443,7 +443,7 @@ stmtFetch_NegativeStmtType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to the reference being of the wrong type
-stmtFetch_NegativeFailCall({Safe, Context, Conn}) ->
+stmtFetch_NegativeFailCall(#{session := Conn, context := Context} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi (a) values (1337)">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_fetch, [Conn])),
@@ -897,7 +897,7 @@ stmtDefineValue_NegativeFailCall(#{session := Conn} = TestCtx) ->
 
 varSetNumElementsInArray(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
             true, true, null
         ]
@@ -914,7 +914,7 @@ varSetNumElementsInArray_NegativeVarType(#{session := Conn} = TestCtx) ->
 
 varSetNumElementsInArray_NegativeNumElementsType(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
             true, true, null
         ]
@@ -928,7 +928,7 @@ varSetNumElementsInArray_NegativeNumElementsType(#{session := Conn} = TestCtx) -
 %% fails due to invalid array size
 varSetNumElementsInArray_NegativeFailCall(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
             true, true, null
         ]
@@ -941,7 +941,7 @@ varSetNumElementsInArray_NegativeFailCall(#{session := Conn} = TestCtx) ->
 
 varSetFromBytes(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
             true, true, null
         ]
@@ -959,7 +959,7 @@ varSetFromBytes_NegativeVarType(#{session := Conn} = TestCtx) ->
 
 varSetFromBytes_NegativePosType(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
             true, true, null
         ]
@@ -973,7 +973,7 @@ varSetFromBytes_NegativePosType(#{session := Conn} = TestCtx) ->
 
 varSetFromBytes_NegativeBinaryType(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
             true, true, null
         ]
@@ -988,7 +988,7 @@ varSetFromBytes_NegativeBinaryType(#{session := Conn} = TestCtx) ->
 %% fails due to position being invalid
 varSetFromBytes_NegativeFailCall(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
             true, true, null
         ]
@@ -1002,7 +1002,7 @@ varSetFromBytes_NegativeFailCall(#{session := Conn} = TestCtx) ->
 
 varRelease(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
             true, true, null
         ]
@@ -1017,7 +1017,7 @@ varRelease_NegativeVarType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to the reference being wrong
-varRelease_NegativeFailCall({Safe, Context, Conn}) ->
+varRelease_NegativeFailCall(#{session := Conn, context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, var_release, [Context])),
     ok.
@@ -1090,75 +1090,75 @@ queryInfoDelete_NegativeFailCall(#{session := Conn} = TestCtx) ->
 %%% Data APIS
 %%%
 
-dataSetTimestamp({Safe, _Context, _Conn}) ->
+dataSetTimestamp(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertEqual(ok,
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeDataType({Safe, _Context, _Conn}) ->
+dataSetTimestamp_NegativeDataType(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [foobar, 1, 2, 3, 4, 5, 6, 7, 8, 9])),
     ok.
 
-dataSetTimestamp_NegativeYearType({Safe, _Context, _Conn}) ->
+dataSetTimestamp_NegativeYearType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, foobar, 2, 3, 4, 5, 6, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeMonthType({Safe, _Context, _Conn}) ->
+dataSetTimestamp_NegativeMonthType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, foobar, 3, 4, 5, 6, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeDayType({Safe, _Context, _Conn}) ->
+dataSetTimestamp_NegativeDayType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, foobar, 4, 5, 6, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeHourType({Safe, _Context, _Conn}) ->
+dataSetTimestamp_NegativeHourType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, foobar, 5, 6, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeMinuteType({Safe, _Context, _Conn}) ->
+dataSetTimestamp_NegativeMinuteType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, foobar, 6, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeSecondType({Safe, _Context, _Conn}) ->
+dataSetTimestamp_NegativeSecondType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, foobar, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeFSecondType({Safe, _Context, _Conn}) ->
+dataSetTimestamp_NegativeFSecondType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, foobar, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeTZHourOffsetType({Safe, _Context, _Conn}) ->
+dataSetTimestamp_NegativeTZHourOffsetType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, foobar, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeTZMinuteOffsetType({Safe, _Context, _Conn}) ->
+dataSetTimestamp_NegativeTZMinuteOffsetType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, 8, foobar])),
@@ -1176,7 +1176,7 @@ dataSetTimestamp_NegativeFailCall(#{session := Conn} = TestCtx) ->
 
 dataSetTimestamp_viaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_TIMESTAMP_TZ', 'DPI_NATIVE_TYPE_TIMESTAMP', 1, 1,
             true, true, null
         ]
@@ -1187,47 +1187,47 @@ dataSetTimestamp_viaPointer(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataSetIntervalDS({Safe, _Context, _Conn}) ->
+dataSetIntervalDS(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertEqual(ok,
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, 4, 5])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalDS_NegativeDataType({Safe, _Context, _Conn}) ->
+dataSetIntervalDS_NegativeDataType(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [foobar, 1, 2, 3, 4, 5])),
     ok.
 
-dataSetIntervalDS_NegativeDayType({Safe, _Context, _Conn}) ->
+dataSetIntervalDS_NegativeDayType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Data, foobar, 2, 3, 4, 5])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalDS_NegativeHoursType({Safe, _Context, _Conn}) ->
+dataSetIntervalDS_NegativeHoursType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, foobar, 3, 4, 5])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalDS_NegativeMinutesType({Safe, _Context, _Conn}) ->
+dataSetIntervalDS_NegativeMinutesType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, foobar, 4, 5])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalDS_NegativeSecondsType({Safe, _Context, _Conn}) ->
+dataSetIntervalDS_NegativeSecondsType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, foobar, 5])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalDS_NegativeFSecondsType({Safe, _Context, _Conn}) ->
+dataSetIntervalDS_NegativeFSecondsType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, 4, foobar])),
@@ -1244,7 +1244,7 @@ dataSetIntervalDS_NegativeFailCall(#{session := Conn} = TestCtx) ->
 
 dataSetIntervalDS_viaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_DS', 'DPI_NATIVE_TYPE_INTERVAL_DS', 1, 1,
             true, true, null
         ]
@@ -1256,26 +1256,26 @@ dataSetIntervalDS_viaPointer(#{session := Conn} = TestCtx) ->
     ok.
 
 
-dataSetIntervalYM({Safe, _Context, _Conn}) ->
+dataSetIntervalYM(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertEqual(ok,
         dpiCall(TestCtx, data_setIntervalYM, [Data, 1, 2])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalYM_NegativeDataType({Safe, _Context, _Conn}) ->
+dataSetIntervalYM_NegativeDataType(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalYM, [foobar, 1, 2])),
     ok.
 
-dataSetIntervalYM_NegativeYearType({Safe, _Context, _Conn}) ->
+dataSetIntervalYM_NegativeYearType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalYM, [Data, foobar, 2])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalYM_NegativeMonthType({Safe, _Context, _Conn}) ->
+dataSetIntervalYM_NegativeMonthType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalYM, [Data, 1, foobar])),
@@ -1292,7 +1292,7 @@ dataSetIntervalYM_NegativeFailCall(#{session := Conn} = TestCtx) ->
 
 dataSetIntervalYM_viaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 1,
             true, true, null
         ]
@@ -1304,19 +1304,19 @@ dataSetIntervalYM_viaPointer(#{session := Conn} = TestCtx) ->
     ok.
 
 
-dataSetInt64({Safe, _Context, _Conn}) ->
+dataSetInt64(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertEqual(ok,
         dpiCall(TestCtx, data_setInt64, [Data, 1])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetInt64_NegativeDataType({Safe, _Context, _Conn}) ->
+dataSetInt64_NegativeDataType(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setInt64, [foobar, 1])),
     ok.
 
-dataSetInt64_NegativeAmountType({Safe, _Context, _Conn}) ->
+dataSetInt64_NegativeAmountType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setInt64, [Data, foobar])),
@@ -1333,7 +1333,7 @@ dataSetInt64_NegativeFailCall(#{session := Conn} = TestCtx) ->
 
 dataSetInt64_viaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 1,
             true, true, null
         ]
@@ -1344,19 +1344,19 @@ dataSetInt64_viaPointer(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataSetBytes({Safe, _Context, _Conn}) ->
+dataSetBytes(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertEqual(ok,
         dpiCall(TestCtx, data_setBytes, [Data, <<"my string">>])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetBytes_NegativeDataType({Safe, _Context, _Conn}) ->
+dataSetBytes_NegativeDataType(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setBytes, [foobar, <<"my string">>])),
     ok.
 
-dataSetBytes_NegativeBinaryType({Safe, _Context, _Conn}) ->
+dataSetBytes_NegativeBinaryType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setBytes, [Data, foobar])),
@@ -1371,26 +1371,26 @@ dataSetBytes_NegativeFailCall(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIsNull_testTrue({Safe, _Context, _Conn}) ->
+dataSetIsNullTrue(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertEqual(ok,
         dpiCall(TestCtx, data_setIsNull, [Data, true])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIsNull_testFalse({Safe, _Context, _Conn}) ->
+dataSetIsNullFalse(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertEqual(ok,
         dpiCall(TestCtx, data_setIsNull, [Data, false])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIsNull_NegativeDataType({Safe, _Context, _Conn}) ->
+dataSetIsNull_NegativeDataType(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIsNull, [foobar, 1])),
     ok.
 
-dataSetIsNull_NegativeIsNullType({Safe, _Context, _Conn}) ->
+dataSetIsNull_NegativeIsNullType(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIsNull, [Data, "not an atom"])),
@@ -1407,7 +1407,7 @@ dataSetIsNull_NegativeFailCall(#{session := Conn} = TestCtx) ->
 
 dataSetIsNull_viaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 1,
             true, true, null
         ]
@@ -1418,9 +1418,9 @@ dataSetIsNull_viaPointer(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataGet_testNull(#{session := Conn} = TestCtx) ->
+dataGetNull(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 1,
             true, true, null
         ]
@@ -1431,9 +1431,9 @@ dataGet_testNull(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataGet_testInt64(#{session := Conn} = TestCtx) ->
+dataGetTInt64(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 1, 1,
             true, true, null
         ]
@@ -1444,9 +1444,9 @@ dataGet_testInt64(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataGet_testUint64(#{session := Conn} = TestCtx) ->
+dataGetUint64(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_NATIVE_UINT', 'DPI_NATIVE_TYPE_UINT64', 1, 1,
             true, true, null
         ]
@@ -1457,9 +1457,9 @@ dataGet_testUint64(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataGet_testFloat(#{session := Conn} = TestCtx) ->
+dataGetFloat(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_NATIVE_FLOAT', 'DPI_NATIVE_TYPE_FLOAT', 1, 1,
             true, true, null
         ]
@@ -1470,9 +1470,9 @@ dataGet_testFloat(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataGet_testDouble(#{session := Conn} = TestCtx) ->
+dataGetDouble(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 1, 1,
             true, true, null
         ]
@@ -1483,9 +1483,9 @@ dataGet_testDouble(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataGet_testBinary(#{session := Conn} = TestCtx) ->
+dataGetBinary(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_NCHAR', 'DPI_NATIVE_TYPE_BYTES', 1, 100,
             true, true, null
         ]
@@ -1497,9 +1497,9 @@ dataGet_testBinary(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataGet_testTimestamp(#{session := Conn} = TestCtx) ->
+dataGetTimestamp(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_TIMESTAMP_TZ', 'DPI_NATIVE_TYPE_TIMESTAMP', 1, 100,
             true, true, null
         ]
@@ -1522,9 +1522,9 @@ dataGet_testTimestamp(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataGet_testIntervalDS(#{session := Conn} = TestCtx) ->
+dataGetIntervalDS(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_DS', 'DPI_NATIVE_TYPE_INTERVAL_DS', 1, 100,
             true, true, null
         ]
@@ -1543,9 +1543,9 @@ dataGet_testIntervalDS(#{session := Conn} = TestCtx) ->
     ok.
 
 
-dataGet_testIntervalYM(#{session := Conn} = TestCtx) ->
+dataGetIntervalYM(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 100,
             true, true, null
         ]
@@ -1559,7 +1559,7 @@ dataGet_testIntervalYM(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataGet_testStmt(#{session := Conn} = TestCtx) ->
+dataGetStmt(#{session := Conn} = TestCtx) ->
     CreateStmt = dpiCall(TestCtx, conn_prepareStmt, [
         Conn, false,
         <<"create or replace procedure ORANIF_TEST_1
@@ -1589,7 +1589,7 @@ dataGet_testStmt(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [VarStmt]),
     ok.
 
-dataGet_testStmtChange(#{session := Conn} = TestCtx) ->
+dataGetStmtChange(#{session := Conn} = TestCtx) ->
     CreateStmt = dpiCall(TestCtx, conn_prepareStmt, [
         Conn, false,
         <<"create or replace procedure ORANIF_TEST_1
@@ -1640,7 +1640,7 @@ dataGet_testStmtChange(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt2, <<>>]),
     ok.
 
-dataGet_NegativeDataType({Safe, _Context, _Conn}) ->
+dataGet_NegativeDataType(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_get, [foobar])),
     ok.
@@ -1672,7 +1672,7 @@ dataGetInt64_NegativeFailCall(#{session := Conn} = TestCtx) ->
 
 dataGetInt64_viaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 1, 1,
             true, true, null
         ]
@@ -1686,7 +1686,7 @@ dataGetInt64_viaPointer(#{session := Conn} = TestCtx) ->
 %% no non-pointer test for this one
 dataGetBytes(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 1, 1,
             true, true, null
         ]
@@ -1727,7 +1727,7 @@ dataRelease_NegativeFailCall(#{session := Conn} = TestCtx) ->
 
 dataRelease_viaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
-        Safe, conn_newVar, [
+        TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 1, 1,
             true, true, null
         ]
@@ -1742,10 +1742,10 @@ dataRelease_viaPointer(#{session := Conn} = TestCtx) ->
 %-------------------------------------------------------------------------------
 -define(SLAVE, oranif_slave).
 
-setup(false) ->
+setup(#{safe := false}) ->
     ok = dpi:load_unsafe(),
     #{safe => false};
-setup(true) ->
+setup(#{safe := true}) ->
     SlaveNode = dpi:load(?SLAVE),
     pong = net_adm:ping(SlaveNode),
     #{safe => true, node => SlaveNode}.
@@ -1754,7 +1754,7 @@ setup_context(TestCtx) ->
     SlaveCtx = setup(TestCtx),
     SlaveCtx#{
         context => dpiCall(
-            Safe, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
+            TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
         )
     }.
 
@@ -1763,7 +1763,7 @@ setup_connecion(TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     ContextCtx#{
         session => dpiCall(
-            Safe, conn_create, [
+            TestCtx, conn_create, [
                 Context, User, Password, Tns,
                 #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}
             ]
@@ -1771,267 +1771,271 @@ setup_connecion(TestCtx) ->
     }.
 
 cleanup(#{safe := Safe, session := Connnnection} = Ctx) ->
-    dpiCall(TestCtx, conn_close, [Connnnection, [], <<>>]),
+    dpiCall(Ctx, conn_close, [Connnnection, [], <<>>]),
     cleanup(maps:without([session], Ctx));
 cleanup(#{safe := Safe, context := Context} = Ctx) ->
-    dpiCall(TestCtx, context_destroy, [Context]),
+    dpiCall(Ctx, context_destroy, [Context]),
     cleanup(maps:without([context], Ctx));
 cleanup(#{safe := true, node := SlaveNode}) ->
     dpiCall(true, unload, [SlaveNode]);
 cleanup(_) -> ok.
 
+testDescriptorMatch(List) ->
+    fun(Setup) ->
+    [?_assertNot(error =:= X(Setup)) || X <- List] end.
+
 -define(NO_CONTEXT_TESTS, [
-    contextCreate_test/1,
-    contextCreate_NegativeMajType/1,
-    contextCreate_NegativeMinType/1,
-    contextCreate_NegativeFailCall/1,
-    contextDestroy_test/1,
-    contextDestroy_NegativeContextType/1,
-    contextDestroy_NegativeContextState/1,
-    contextGetClientVersion_test/1,
-    contextGetClientVersion_NegativeContextType/1,
-    contextGetClientVersion_NegativeFailCall/1
+    fun contextCreate/1,
+    fun contextCreate_NegativeMajType/1,
+    fun contextCreate_NegativeMinType/1,
+    fun contextCreate_NegativeFailCall/1,
+    fun contextDestroy/1,
+    fun contextDestroy_BadContext/1,
+    fun contextDestroy_NegativeContextState/1,
+    fun contextGetClientVersion/1,
+    fun contextGetClientVersion_NegativeContextType/1,
+    fun contextGetClientVersion_NegativeFailCall/1
 ]).
 
 -define(AFTER_CONTEXT_TESTS, [
-    connCreate_test/1,
-    connCreate_NegativeContextType/1,
-    connCreate_NegativeUsernameType/1,
-    connCreate_NegativePassType/1,
-    connCreate_NegativeTNSType/1,
-    connCreate_NegativeParamsType/1,
-    connCreate_NegativeEncodingType/1,
-    connCreate_NegativeNencodingType/1,
-    connCreate_NegativeFailCall/1
+    fun connCreate/1,
+    fun connCreate_BadContext/1,
+    fun connCreate_NegativeUsernameType/1,
+    fun connCreate_NegativePassType/1,
+    fun connCreate_NegativeTNSType/1,
+    fun connCreate_NegativeParamsType/1,
+    fun connCreate_NegativeEncodingType/1,
+    fun connCreate_NegativeNencodingType/1,
+    fun connCreate_NegativeFailCall/1
 ]).
 
--define(AFTER_CONNCTION_TESTS, [
-    connPrepareStmt_test/1,
-    connPrepareStmt_emptyTag/1,
-    connPrepareStmt_NegativeConnType/1,
-    connPrepareStmt_NegativeScrollableType/1,
-    connPrepareStmt_NegativeSQLType/1,
-    connPrepareStmt_NegativeTagType/1,
-    connPrepareStmt_NegativeFailCall/1,
-    connNewVar_test/1,
-    connNewVar_NegativeConnType/1,
-    connNewVar_NegativeOraTypeType/1,
-    connNewVar_NegativeDpiTypeType/1,
-    connNewVar_NegativeArraySizeType/1,
-    connNewVar_NegativeSizeType/1,
-    connNewVar_NegativeSizeIsBytesType/1,
-    connNewVar_NegativeIsArrayType/1,
-    connNewVar_NegativeObjTypeType/1,
-    connNewVar_NegativeFailCall/1,
-    connCommit_test/1,
-    connCommit_NegativeConnType/1,
-    connCommit_NegativeFailCall/1,
-    connRollback_test/1,
-    connRollback_NegativeConnType/1,
-    connRollback_NegativeFailCall/1,
-    connPing_test/1,
-    connPing_NegativeConnType/1,
-    connPing_NegativeFailCall/1,
-    connClose_test/1,
-    connClose_testWithModes/1,
-    connClose_NegativeConnType/1,
-    connClose_NegativeModesType/1,
-    connClose_NegativeModeInsideType/1,
-    connClose_NegativeInvalidMode/1,
-    connClose_NegativeTagType/1,
-    connClose_NegativeFailCall/1,
-    connGetServerVersion_test/1,
-    connGetServerVersion_NegativeConnType/1,
-    connGetServerVersion_NegativeFailCall/1,
-    stmtExecute_test/1,
-    stmtExecute_testWithModes/1,
-    stmtExecute_NegativeStmtType/1,
-    stmtExecute_NegativeModesType/1,
-    stmtExecute_NegativeModeInsideType/1,
-    stmtExecute_NegativeFailCall/1,
-    stmtFetch_test/1,
-    stmtFetch_NegativeStmtType/1,
-    stmtFetch_NegativeFailCall/1,
-    stmtGetQueryValue_test/1,
-    stmtGetQueryValue_NegativeStmtType/1,
-    stmtGetQueryValue_NegativePosType/1,
-    stmtGetQueryValue_NegativeFailCall/1,
-    stmtGetQueryInfo_test/1,
-    stmtGetQueryInfo_NegativeStmtType/1,
-    stmtGetQueryInfo_NegativePosType/1,
-    stmtGetQueryInfo_NegativeFailCall/1,
-    stmtGetNumQueryColumns_test/1,
-    stmtGetNumQueryColumns_NegativeStmtType/1,
-    stmtGetNumQueryColumns_NegativeFailCall/1,
-    stmtBindValueByPos_test/1,
-    stmtBindValueByPos_NegativeStmtType/1,
-    stmtBindValueByPos_NegativePosType/1,
-    stmtBindValueByPos_NegativeTypeType/1,
-    stmtBindValueByPos_NegativeDataType/1,
-    stmtBindValueByPos_NegativeFailCall/1,
-    stmtBindValueByName_test/1,
-    stmtBindValueByName_NegativeStmtType/1,
-    stmtBindValueByName_NegativePosType/1,
-    stmtBindValueByName_NegativeTypeType/1,
-    stmtBindValueByName_NegativeDataType/1,
-    stmtBindValueByName_NegativeFailCall/1,
-    stmtBindByPos_test/1,
-    stmtBindByPos_NegativeStmtType/1,
-    stmtBindByPos_NegativePosType/1,
-    stmtBindByPos_NegativeVarType/1,
-    stmtBindByPos_NegativeFailCall/1,
-    stmtBindByName_test/1,
-    stmtBindByName_NegativeStmtType/1,
-    stmtBindByName_NegativePosType/1,
-    stmtBindByName_NegativeVarType/1,
-    stmtBindByName_NegativeFailCall/1,
-    stmtDefine_test/1,
-    stmtDefine_NegativeStmtType/1,
-    stmtDefine_NegativePosType/1,
-    stmtDefine_NegativeVarType/1,
-    stmtDefine_NegativeFailCall/1,
-    stmtDefineValue_test/1,
-    stmtDefineValue_NegativeStmtType/1,
-    stmtDefineValue_NegativePosType/1,
-    stmtDefineValue_NegativeOraTypeType/1,
-    stmtDefineValue_NegativeNativeTypeType/1,
-    stmtDefineValue_NegativeSizeType/1,
-    stmtDefineValue_NegativeSizeInBytesType/1,
-    stmtDefineValue_NegativeFailCall/1,
-    varSetNumElementsInArray_test/1,
-    varSetNumElementsInArray_NegativeVarType/1,
-    varSetNumElementsInArray_NegativeNumElementsType/1,
-    varSetNumElementsInArray_NegativeFailCall/1,
-    varSetFromBytes_test/1,
-    varSetFromBytes_NegativeVarType/1,
-    varSetFromBytes_NegativePosType/1,
-    varSetFromBytes_NegativeBinaryType/1,
-    varSetFromBytes_NegativeFailCall/1,
-    varRelease_test/1,
-    varRelease_NegativeVarType/1,
-    varRelease_NegativeFailCall/1,
-    queryInfoGet_test/1,
-    queryInfoGet_NegativeQueryInfoType/1,
-    queryInfoGet_NegativeFailCall/1,
-    queryInfoDelete_test/1,
-    queryInfoDelete_NegativeQueryInfoType/1,
-    queryInfoDelete_NegativeFailCall/1,
-    dataSetTimestamp_test/1,
-    dataSetTimestamp_NegativeDataType/1,
-    dataSetTimestamp_NegativeYearType/1,
-    dataSetTimestamp_NegativeMonthType/1,
-    dataSetTimestamp_NegativeDayType/1,
-    dataSetTimestamp_NegativeHourType/1,
-    dataSetTimestamp_NegativeMinuteType/1,
-    dataSetTimestamp_NegativeSecondType/1,
-    dataSetTimestamp_NegativeFSecondType/1,
-    dataSetTimestamp_NegativeTZHourOffsetType/1,
-    dataSetTimestamp_NegativeTZMinuteOffsetType/1,
-    dataSetTimestamp_NegativeFailCall/1,
-    dataSetTimestamp_viaPointer/1,
-    dataSetIntervalDS_test/1,
-    dataSetIntervalDS_NegativeDataType/1,
-    dataSetIntervalDS_NegativeDayType/1,
-    dataSetIntervalDS_NegativeHoursType/1,
-    dataSetIntervalDS_NegativeMinutesType/1,
-    dataSetIntervalDS_NegativeSecondsType/1,
-    dataSetIntervalDS_NegativeFSecondsType/1,
-    dataSetIntervalDS_NegativeFailCall/1,
-    dataSetIntervalDS_viaPointer/1,
-    dataSetIntervalYM_test/1,
-    dataSetIntervalYM_NegativeDataType/1,
-    dataSetIntervalYM_NegativeYearType/1,
-    dataSetIntervalYM_NegativeMonthType/1,
-    dataSetIntervalYM_NegativeFailCall/1,
-    dataSetIntervalYM_viaPointer/1,
-    dataSetInt64_test/1,
-    dataSetInt64_NegativeDataType/1,
-    dataSetInt64_NegativeAmountType/1,
-    dataSetInt64_NegativeFailCall/1,
-    dataSetInt64_viaPointer/1,
-    dataSetBytes_test/1,
-    dataSetBytes_NegativeDataType/1,
-    dataSetBytes_NegativeBinaryType/1,
-    dataSetBytes_NegativeFailCall/1,
-    dataSetIsNull_testTrue/1,
-    dataSetIsNull_testFalse/1,
-    dataSetIsNull_NegativeDataType/1,
-    dataSetIsNull_NegativeIsNullType/1,
-    dataSetIsNull_NegativeFailCall/1,
-    dataSetIsNull_viaPointer/1,
-    dataGet_testNull/1,
-    dataGet_testInt64/1,
-    dataGet_testUint64/1,
-    dataGet_testFloat/1,
-    dataGet_testDouble/1,
-    dataGet_testBinary/1,
-    dataGet_testTimestamp/1,
-    dataGet_testIntervalDS/1,
-    dataGet_testIntervalYM/1,
-    dataGet_testStmt/1,
-    dataGet_testStmtChange/1,
-    dataGet_NegativeDataType/1,
-    dataGet_NegativeFailCall/1,
-    dataGetInt64_test/1,
-    dataGetInt64_NegativeDataType/1,
-    dataGetInt64_NegativeFailCall/1,
-    dataGetInt64_viaPointer/1,
-    dataGetBytes_test/1,
-    dataGetBytes_NegativeDataType/1,
-    dataGetBytes_NegativeFailCall/1,
-    dataRelease_test/1,
-    dataRelease_NegativeDataType/1,
-    dataRelease_NegativeFailCall/1,
-    dataRelease_viaPointer/1
+-define(AFTER_CONNECTION_TESTS, [
+    fun connPrepareStmt/1,
+    fun connPrepareStmt_emptyTag/1,
+    fun connPrepareStmt_NegativeConnType/1,
+    fun connPrepareStmt_NegativeScrollableType/1,
+    fun connPrepareStmt_NegativeSQLType/1,
+    fun connPrepareStmt_NegativeTagType/1,
+    fun connPrepareStmt_NegativeFailCall/1,
+    fun connNewVar/1,
+    fun connNewVar_NegativeConnType/1,
+    fun connNewVar_NegativeOraTypeType/1,
+    fun connNewVar_NegativeDpiTypeType/1,
+    fun connNewVar_NegativeArraySizeType/1,
+    fun connNewVar_NegativeSizeType/1,
+    fun connNewVar_NegativeSizeIsBytesType/1,
+    fun connNewVar_NegativeIsArrayType/1,
+    fun connNewVar_NegativeObjTypeType/1,
+    fun connNewVar_NegativeFailCall/1,
+    fun connCommit/1,
+    fun connCommit_NegativeConnType/1,
+    fun connCommit_NegativeFailCall/1,
+    fun connRollback/1,
+    fun connRollback_NegativeConnType/1,
+    fun connRollback_NegativeFailCall/1,
+    fun connPing/1,
+    fun connPing_NegativeConnType/1,
+    fun connPing_NegativeFailCall/1,
+    fun connClose/1,
+    fun connCloseWithModes/1,
+    fun connClose_NegativeConnType/1,
+    fun connClose_NegativeModesType/1,
+    fun connClose_NegativeModeInsideType/1,
+    fun connClose_NegativeInvalidMode/1,
+    fun connClose_NegativeTagType/1,
+    fun connClose_NegativeFailCall/1,
+    fun connGetServerVersion/1,
+    fun connGetServerVersion_NegativeConnType/1,
+    fun connGetServerVersion_NegativeFailCall/1,
+    fun stmtExecute/1,
+    fun stmtExecuteWithModes/1,
+    fun stmtExecute_NegativeStmtType/1,
+    fun stmtExecute_NegativeModesType/1,
+    fun stmtExecute_NegativeModeInsideType/1,
+    fun stmtExecute_NegativeFailCall/1,
+    fun stmtFetch/1,
+    fun stmtFetch_NegativeStmtType/1,
+    fun stmtFetch_NegativeFailCall/1,
+    fun stmtGetQueryValue/1,
+    fun stmtGetQueryValue_NegativeStmtType/1,
+    fun stmtGetQueryValue_NegativePosType/1,
+    fun stmtGetQueryValue_NegativeFailCall/1,
+    fun stmtGetQueryInfo/1,
+    fun stmtGetQueryInfo_NegativeStmtType/1,
+    fun stmtGetQueryInfo_NegativePosType/1,
+    fun stmtGetQueryInfo_NegativeFailCall/1,
+    fun stmtGetNumQueryColumns/1,
+    fun stmtGetNumQueryColumns_NegativeStmtType/1,
+    fun stmtGetNumQueryColumns_NegativeFailCall/1,
+    fun stmtBindValueByPos/1,
+    fun stmtBindValueByPos_NegativeStmtType/1,
+    fun stmtBindValueByPos_NegativePosType/1,
+    fun stmtBindValueByPos_NegativeTypeType/1,
+    fun stmtBindValueByPos_NegativeDataType/1,
+    fun stmtBindValueByPos_NegativeFailCall/1,
+    fun stmtBindValueByName/1,
+    fun stmtBindValueByName_NegativeStmtType/1,
+    fun stmtBindValueByName_NegativePosType/1,
+    fun stmtBindValueByName_NegativeTypeType/1,
+    fun stmtBindValueByName_NegativeDataType/1,
+    fun stmtBindValueByName_NegativeFailCall/1,
+    fun stmtBindByPos/1,
+    fun stmtBindByPos_NegativeStmtType/1,
+    fun stmtBindByPos_NegativePosType/1,
+    fun stmtBindByPos_NegativeVarType/1,
+    fun stmtBindByPos_NegativeFailCall/1,
+    fun stmtBindByName/1,
+    fun stmtBindByName_NegativeStmtType/1,
+    fun stmtBindByName_NegativePosType/1,
+    fun stmtBindByName_NegativeVarType/1,
+    fun stmtBindByName_NegativeFailCall/1,
+    fun stmtDefine/1,
+    fun stmtDefine_NegativeStmtType/1,
+    fun stmtDefine_NegativePosType/1,
+    fun stmtDefine_NegativeVarType/1,
+    fun stmtDefine_NegativeFailCall/1,
+    fun stmtDefineValue/1,
+    fun stmtDefineValue_NegativeStmtType/1,
+    fun stmtDefineValue_NegativePosType/1,
+    fun stmtDefineValue_NegativeOraTypeType/1,
+    fun stmtDefineValue_NegativeNativeTypeType/1,
+    fun stmtDefineValue_NegativeSizeType/1,
+    fun stmtDefineValue_NegativeSizeInBytesType/1,
+    fun stmtDefineValue_NegativeFailCall/1,
+    fun varSetNumElementsInArray/1,
+    fun varSetNumElementsInArray_NegativeVarType/1,
+    fun varSetNumElementsInArray_NegativeNumElementsType/1,
+    fun varSetNumElementsInArray_NegativeFailCall/1,
+    fun varSetFromBytes/1,
+    fun varSetFromBytes_NegativeVarType/1,
+    fun varSetFromBytes_NegativePosType/1,
+    fun varSetFromBytes_NegativeBinaryType/1,
+    fun varSetFromBytes_NegativeFailCall/1,
+    fun varRelease/1,
+    fun varRelease_NegativeVarType/1,
+    fun varRelease_NegativeFailCall/1,
+    fun queryInfoGet/1,
+    fun queryInfoGet_NegativeQueryInfoType/1,
+    fun queryInfoGet_NegativeFailCall/1,
+    fun queryInfoDelete/1,
+    fun queryInfoDelete_NegativeQueryInfoType/1,
+    fun queryInfoDelete_NegativeFailCall/1,
+    fun dataSetTimestamp/1,
+    fun dataSetTimestamp_NegativeDataType/1,
+    fun dataSetTimestamp_NegativeYearType/1,
+    fun dataSetTimestamp_NegativeMonthType/1,
+    fun dataSetTimestamp_NegativeDayType/1,
+    fun dataSetTimestamp_NegativeHourType/1,
+    fun dataSetTimestamp_NegativeMinuteType/1,
+    fun dataSetTimestamp_NegativeSecondType/1,
+    fun dataSetTimestamp_NegativeFSecondType/1,
+    fun dataSetTimestamp_NegativeTZHourOffsetType/1,
+    fun dataSetTimestamp_NegativeTZMinuteOffsetType/1,
+    fun dataSetTimestamp_NegativeFailCall/1,
+    fun dataSetTimestamp_viaPointer/1,
+    fun dataSetIntervalDS/1,
+    fun dataSetIntervalDS_NegativeDataType/1,
+    fun dataSetIntervalDS_NegativeDayType/1,
+    fun dataSetIntervalDS_NegativeHoursType/1,
+    fun dataSetIntervalDS_NegativeMinutesType/1,
+    fun dataSetIntervalDS_NegativeSecondsType/1,
+    fun dataSetIntervalDS_NegativeFSecondsType/1,
+    fun dataSetIntervalDS_NegativeFailCall/1,
+    fun dataSetIntervalDS_viaPointer/1,
+    fun dataSetIntervalYM/1,
+    fun dataSetIntervalYM_NegativeDataType/1,
+    fun dataSetIntervalYM_NegativeYearType/1,
+    fun dataSetIntervalYM_NegativeMonthType/1,
+    fun dataSetIntervalYM_NegativeFailCall/1,
+    fun dataSetIntervalYM_viaPointer/1,
+    fun dataSetInt64/1,
+    fun dataSetInt64_NegativeDataType/1,
+    fun dataSetInt64_NegativeAmountType/1,
+    fun dataSetInt64_NegativeFailCall/1,
+    fun dataSetInt64_viaPointer/1,
+    fun dataSetBytes/1,
+    fun dataSetBytes_NegativeDataType/1,
+    fun dataSetBytes_NegativeBinaryType/1,
+    fun dataSetBytes_NegativeFailCall/1,
+    fun dataSetIsNullTrue/1,
+    fun dataSetIsNullFalse/1,
+    fun dataSetIsNull_NegativeDataType/1,
+    fun dataSetIsNull_NegativeIsNullType/1,
+    fun dataSetIsNull_NegativeFailCall/1,
+    fun dataSetIsNull_viaPointer/1,
+    fun dataGetNull/1,
+    fun dataGetTInt64/1,
+    fun dataGetUint64/1,
+    fun dataGetFloat/1,
+    fun dataGetDouble/1,
+    fun dataGetBinary/1,
+    fun dataGetTimestamp/1,
+    fun dataGetIntervalDS/1,
+    fun dataGetIntervalYM/1,
+    fun dataGetStmt/1,
+    fun dataGetStmtChange/1,
+    fun dataGet_NegativeDataType/1,
+    fun dataGet_NegativeFailCall/1,
+    fun dataGetInt64/1,
+    fun dataGetInt64_NegativeDataType/1,
+    fun dataGetInt64_NegativeFailCall/1,
+    fun dataGetInt64_viaPointer/1,
+    fun dataGetBytes/1,
+    fun dataGetBytes_NegativeDataType/1,
+    fun dataGetBytes_NegativeFailCall/1,
+    fun dataRelease/1,
+    fun dataRelease_NegativeDataType/1,
+    fun dataRelease_NegativeFailCall/1,
+    fun dataRelease_viaPointer/1
 ]).
 
 unsafe_no_context_test_() ->
     {
         setup,
-        fun() -> setup(false) end,
+        fun() -> setup(#{safe => false}) end,
         fun cleanup/1,
-        ?NO_CONTEXT_TESTS
+        testDescriptorMatch(?NO_CONTEXT_TESTS)
     }.
 
-unsafe_ontext_test_() ->
+unsafe_context_test_() ->
     {
         setup,
-        fun() -> setup_context(false) end,
+        fun() -> setup_context(#{safe => false}) end,
         fun cleanup/1,
-        ?AFTER_CONTEXT_TESTS
+        testDescriptorMatch(?AFTER_CONTEXT_TESTS)
     }.
 
 unsafe_session_test_() ->
     {
         setup,
-        fun() -> setup(false) end,
+        fun() -> setup_connecion(#{safe => false}) end,
         fun cleanup/1,
-        ?AFTER_CONNCTION_TESTS
+        testDescriptorMatch(?AFTER_CONNECTION_TESTS)
     }.
 
 
 no_context_test_() ->
     {
         setup,
-        fun() -> setup(true) end,
+        fun() -> setup(#{safe => true}) end,
         fun cleanup/1,
-        ?NO_CONTEXT_TESTS
+        testDescriptorMatch(?NO_CONTEXT_TESTS)
     }.
 
-ontext_test_() ->
+context_test_() ->
     {
         setup,
-        fun() -> setup_context(true) end,
+        fun() -> setup_context(#{safe => true}) end,
         fun cleanup/1,
-        ?AFTER_CONTEXT_TESTS
+        testDescriptorMatch(?AFTER_CONTEXT_TESTS)
     }.
 
 session_test_() ->
     {
         setup,
-        fun() -> setup(true) end,
+        fun() -> setup_connecion(#{safe => true}) end,
         fun cleanup/1,
-        ?AFTER_CONNCTION_TESTS
+        testDescriptorMatch(?AFTER_CONNECTION_TESTS)
     }.
 
 %-------------------------------------------------------------------------------
