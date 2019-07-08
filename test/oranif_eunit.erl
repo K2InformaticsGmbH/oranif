@@ -1732,15 +1732,13 @@ dataRelease_viaPointer({Safe, _Context, Conn}) ->
 
 -define(SLAVE, oranif_slave).
 
-setup_context_only(Safe) ->
+
+setup_slave(Safe) ->
     if
         Safe -> ok = dpi:load(?SLAVE);
         true -> ok = dpi:load_unsafe()
     end,
-    #{tns := Tns, user := User, password := Password} = getConfig(),
-    Context = dpiCall(
-        Safe, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
-    ),
+    SlaveCtx = #{safe => Safe},
     if
         Safe ->
             SlaveNode = list_to_existing_atom(
@@ -1750,78 +1748,42 @@ setup_context_only(Safe) ->
                 )
             ),
             pong = net_adm:ping(SlaveNode),
-            {Safe, SlaveNode, Context};
-        true -> {Safe, Context}
+            SlaveCtx#{node => SlaveNode};
+        true -> SlaveCtx
     end.
 
-setup_no_input(Safe) ->
-    if
-        Safe -> ok = dpi:load(?SLAVE);
-        true -> ok = dpi:load_unsafe()
-    end,
-    #{tns := Tns, user := User, password := Password} = getConfig(),
-    if
-        Safe ->
-            SlaveNode = list_to_existing_atom(
-                re:replace(
-                    atom_to_list(node()), ".*(@.*)", atom_to_list(?SLAVE)++"\\1",
-                    [{return, list}]
-                )
-            ),
-            pong = net_adm:ping(SlaveNode),
-            {Safe, SlaveNode};
-        true -> {Safe}
-    end.
+setup_context(Safe) ->
+    SlaveCtx = setup_slave(Safe),
+    SlaveCtx#{
+        context => dpiCall(
+            Safe, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
+        )
+    }.
 
 setup(Safe) ->
-    if
-        Safe -> ok = dpi:load(?SLAVE);
-        true -> ok = dpi:load_unsafe()
-    end,
+    ContextCtx = #{context := Context} = setup_context(Safe),
     #{tns := Tns, user := User, password := Password} = getConfig(),
-    Context = dpiCall(
-        Safe, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
-    ),
-    Connnnection = dpiCall(
-        Safe, conn_create, [
-            Context, User, Password, Tns,
-            #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}
-        ]
-    ),
-    if
-        Safe ->
-            SlaveNode = list_to_existing_atom(
-                re:replace(
-                    atom_to_list(node()), ".*(@.*)", atom_to_list(?SLAVE)++"\\1",
-                    [{return, list}]
-                )
-            ),
-            pong = net_adm:ping(SlaveNode),
-            {Safe, SlaveNode, Context, Connnnection};
-        true -> {Safe, Context, Connnnection}
-    end.
+    ContextCtx#{
+        session => dpiCall(
+            Safe, conn_create, [
+                Context, User, Password, Tns,
+                #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}
+            ]
+        )
+    }.
 
-cleanup({Safe, _SlaveNode, Context, Connnnection}) ->
-    cleanup({Safe, Context, Connnnection});
-cleanup({Safe, Context, Connnnection}) ->
+cleanup(#{safe := Safe, session := Connnnection} = Ctx) ->
     dpiCall(Safe, conn_close, [Connnnection, [], <<>>]),
+    cleanup(maps:without([session], Ctx));
+cleanup(#{safe := Safe, context := Context} = Ctx) ->
     dpiCall(Safe, context_destroy, [Context]),
-    if Safe -> dpiCall(Safe, unload, []); true -> ok end.
-
-cleanup_context_only({Safe, _SlaveNode, Context}) ->
-    cleanup({Safe, Context});
-cleanup_context_only({Safe, Context}) ->
-    dpiCall(Safe, context_destroy, [Context]),
-    if Safe -> dpiCall(Safe, unload, []); true -> ok end.
-
-cleanup_no_input({Safe, _SlaveNode}) ->
-    cleanup({Safe});
-cleanup_no_input({Safe}) ->
-    if Safe -> dpiCall(Safe, unload, []); true -> ok end.
+    cleanup(maps:without([context], Ctx));
+cleanup(#{safe := true}) -> dpiCall(true, unload, []);
+cleanup(_) -> ok.
 
 -define(F(__Fn), {??__Fn, fun __Fn/1}).
 
--define(API_TESTS_NO_INPUT, [
+-define(NO_PREAMBLE_TESTS, [
     ?F(contextCreate_test),
     ?F(contextCreate_NegativeMajType),
     ?F(contextCreate_NegativeMinType),
@@ -1834,7 +1796,7 @@ cleanup_no_input({Safe}) ->
     ?F(contextGetClientVersion_NegativeFailCall)
 ]).
 
--define(API_TESTS_CONTEXT_ONLY, [
+-define(CONTEXT_ONLY_TESTS, [
     ?F(connCreate_test),
     ?F(connCreate_NegativeContextType),
     ?F(connCreate_NegativeUsernameType),
@@ -2024,8 +1986,6 @@ cleanup_no_input({Safe}) ->
     ?F(dataRelease_NegativeDataType),
     ?F(dataRelease_NegativeFailCall),
     ?F(dataRelease_viaPointer)
-
-
 ]).
 
 unsafe_API_no_input_test_() ->
