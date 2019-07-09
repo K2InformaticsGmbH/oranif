@@ -1777,8 +1777,9 @@ cleanup(#{safe := Safe, session := Connnnection} = Ctx) ->
 cleanup(#{safe := Safe, context := Context} = Ctx) ->
     dpiCall(Ctx, context_destroy, [Context]),
     cleanup(maps:without([context], Ctx));
-cleanup(#{safe := true, node := SlaveNode}) ->
-    dpiCall(true, unload, [SlaveNode]);
+cleanup(#{safe := true, node := SlaveNode} = Ctx) ->
+    ?debugFmt("UNLOADING! Ctx ~p",[Ctx]), ok;
+    %dpiCall(Ctx, unload, [SlaveNode]);
 cleanup(_) -> ok.
 
 -define(F(__Fn), {??__Fn, fun __Fn/1}).
@@ -2031,7 +2032,7 @@ unsafe_session_test_() ->
     }.
 
 
-no_context_test_a() ->
+no_context_test_() ->
     {
         setup,
         fun() -> setup(#{safe => true}) end,
