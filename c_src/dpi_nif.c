@@ -95,6 +95,7 @@ ERL_NIF_TERM dpiErrorInfoMap(ErlNifEnv *env, dpiErrorInfo e)
 typedef struct proc_t
 {
     ErlNifEnv *env;
+    ErlNifMutex *lock;
     ERL_NIF_TERM pids;
 } proc;
 
@@ -107,7 +108,7 @@ static ERL_NIF_TERM processes(
     unsigned len;
     if (argc == 0) // pids_get
     {
-        if(!enif_get_list_length(p->env, p->pids, &len))
+        if (!enif_get_list_length(p->env, p->pids, &len))
             BADARG_EXCEPTION(0, "list length of p->pids");
         D("p->pids has %u\r\n", len);
         RETURNED_TRACE;
@@ -118,12 +119,15 @@ static ERL_NIF_TERM processes(
         if (!enif_is_list(env, argv[0]))
             BADARG_EXCEPTION(0, "list of pids");
 
-        if(!enif_get_list_length(env, argv[0], &len))
+        if (!enif_get_list_length(env, argv[0], &len))
             BADARG_EXCEPTION(0, "list length of pids");
         D("argv[0] has %u\r\n", len);
 
+        enif_mutex_lock(p->lock);
         p->pids = enif_make_copy(p->env, argv[0]);
-        if(!enif_get_list_length(p->env, p->pids, &len))
+        enif_mutex_unlock(p->lock);
+    
+        if (!enif_get_list_length(p->env, p->pids, &len))
             BADARG_EXCEPTION(0, "list length of p->pids");
         D("p->pids has %u\r\n", len);
 
@@ -157,6 +161,7 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 
     proc *p = enif_alloc(sizeof(proc));
     p->env = enif_alloc_env();
+    p->lock = enif_mutex_create("process_mutex");
     p->pids = enif_make_list(p->env, 0);
     *priv_data = p;
 
@@ -179,7 +184,9 @@ static void unload(ErlNifEnv *env, void *priv_data)
 {
     CALL_TRACE;
 
+    enif_mutex_destroy(((proc *)priv_data)->lock);
     enif_free_env(((proc *)priv_data)->env);
+    enif_free(priv_data);
 
     RETURNED_TRACE;
 }
