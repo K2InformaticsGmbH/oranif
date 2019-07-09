@@ -633,17 +633,17 @@ stmtBindValueByName_NegativeDataType(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-%% fails due to the name being invalid
+%% fails due to bad data handle passing
 stmtBindValueByName_NegativeFailCall(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_bindValueByName, [Stmt, <<"B">>, 'DPI_NATIVE_TYPE_INT64', BindData])),
+        dpiCall(TestCtx, stmt_bindValueByName, [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', Stmt])),
     dpiCall(TestCtx, data_release, [BindData]),
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>),
-    %% also freeing the stmt here causes it to abort
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
 stmtBindByPos(#{session := Conn} = TestCtx) -> 
@@ -1755,7 +1755,7 @@ setup_context(TestCtx) ->
     SlaveCtx = setup(TestCtx),
     SlaveCtx#{
         context => dpiCall(
-            TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
+            SlaveCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
         )
     }.
 
@@ -1764,7 +1764,7 @@ setup_connecion(TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     ContextCtx#{
         session => dpiCall(
-            TestCtx, conn_create, [
+            ContextCtx, conn_create, [
                 Context, User, Password, Tns,
                 #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}
             ]
@@ -1989,6 +1989,7 @@ cleanup(_) -> ok.
     ?F(dataRelease_viaPointer)
 ]).
 
+
 -define(FUBAR_TESTS, [
     {"aaaaaaah", fun contextCreate/1}
 ]).
@@ -2040,7 +2041,7 @@ no_context_test_() ->
         testDescriptorMatch(?NO_CONTEXT_TESTS)
     }.
 
-context_test_a() ->
+context_test_() ->
     {
         setup,
         fun() -> setup_context(#{safe => true}) end,
@@ -2048,7 +2049,7 @@ context_test_a() ->
         testDescriptorMatch(?AFTER_CONTEXT_TESTS)
     }.
 
-session_test_a() ->
+session_test_() ->
     {
         setup,
         fun() -> setup_connecion(#{safe => true}) end,
