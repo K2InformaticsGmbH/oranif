@@ -104,24 +104,34 @@ static ERL_NIF_TERM processes(
 {
     CALL_TRACE;
 
+    ERL_NIF_TERM pids;
     proc *p = (proc *)enif_priv_data(env);
     unsigned len;
     if (argc == 0) // pids_get
     {
+        D("pids_get\r\n");
+
         if (!enif_get_list_length(p->env, p->pids, &len))
             BADARG_EXCEPTION(0, "list length of p->pids");
-        D("p->pids has %u\r\n", len);
+        D("pids_get p->pids has %u\r\n", len);
+
+        enif_mutex_lock(p->lock);
+        pids = p->pids;
+        enif_mutex_unlock(p->lock);
+
         RETURNED_TRACE;
-        return p->pids;
+        return pids;
     }
     if (argc == 1) // pids_set([pid()])
     {
+        D("pids_set\r\n");
+
         if (!enif_is_list(env, argv[0]))
             BADARG_EXCEPTION(0, "list of pids");
 
         if (!enif_get_list_length(env, argv[0], &len))
             BADARG_EXCEPTION(0, "list length of pids");
-        D("argv[0] has %u\r\n", len);
+        D("pids_set argv[0] has %u\r\n", len);
 
         enif_mutex_lock(p->lock);
         p->pids = enif_make_copy(p->env, argv[0]);
@@ -129,7 +139,7 @@ static ERL_NIF_TERM processes(
     
         if (!enif_get_list_length(p->env, p->pids, &len))
             BADARG_EXCEPTION(0, "list length of p->pids");
-        D("p->pids has %u\r\n", len);
+        D("pids_set p->pids has %u\r\n", len);
 
         RETURNED_TRACE;
         return ATOM_OK;

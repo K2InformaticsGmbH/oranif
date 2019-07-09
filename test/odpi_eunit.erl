@@ -9,11 +9,11 @@ callS(Conn, Context, SQL) ->
     
     try dpi:stmt_execute(Stmt, []) of
     Ret -> 
-        dpi:stmt_release(Stmt),
+        dpi:stmt_close(Stmt, <<>>),
         Ret
-    catch _:_ ->
-        dpi:stmt_release(Stmt),
-        dpi:context_getError(Context)
+    catch _:Error ->
+        dpi:stmt_close(Stmt, <<>>),
+        Error
     end.
 
 -define(CALL(SQL), callS(Conn, Context, SQL)).
@@ -25,9 +25,9 @@ callS_nif(Conn, Context, SQL) ->
     Ret -> 
         dpi:dpiStmt_release_nif(Stmt),
         Ret
-    catch _:_ ->
+    catch _:Error ->
         dpi:dpiStmt_release_nif(Stmt),
-        dpi:dpiContext_getError_nif(Context)
+        Error
     end.
 
 -define(CALL_nif(SQL), callS_nif(Conn, Context, SQL)).
@@ -82,7 +82,7 @@ simple_fetch([Context, Conn]) ->
     ?assertEqual(Type, 'DPI_NATIVE_TYPE_DOUBLE'),
     ?assertEqual(Query_cols, 5),
     dpi:data_release(Result),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
     ?_assert(true).
 
 create_insert_select_drop([Context, Conn]) -> 
@@ -96,7 +96,7 @@ create_insert_select_drop([Context, Conn]) ->
     #{data := TblCount, nativeTypeNum := _Type} = dpi:stmt_getQueryValue(Stmt_Exist, 1),
     ?assertEqual(0.0, dpi:data_get(TblCount)), %% the table was dropped so it shouldn't exist at this port
     dpi:data_release(TblCount),
-    dpi:stmt_release(Stmt_Exist),
+    dpi:stmt_close(Stmt_Exist, <<>>),
     ?CALL(<<"create table test_dpi1(a integer, b integer, c integer)">>),
      
     Stmt_Exist2 = dpi:conn_prepareStmt(Conn, false, CountSQL, <<"">>),  
@@ -105,7 +105,7 @@ create_insert_select_drop([Context, Conn]) ->
     #{data := TblCount2} = dpi:stmt_getQueryValue(Stmt_Exist2, 1),
     ?assertEqual(1.0, dpi:data_get(TblCount2)), %% the table was created so it should exists now
     dpi:data_release(TblCount2),
-    dpi:stmt_release(Stmt_Exist2),
+    dpi:stmt_close(Stmt_Exist2, <<>>),
     ?CALL(<<"insert into test_dpi1 values (1, 1337, 5)">>),
 
     Stmt_fetch = dpi:conn_prepareStmt(Conn, false, <<"select * from test_dpi1">>, <<"">>),
@@ -123,8 +123,8 @@ create_insert_select_drop([Context, Conn]) ->
     ?assertEqual(1337.0, dpi:data_get(Query_refResult)),
     dpi:data_release(TblCount3),
     dpi:data_release(Query_refResult),
-    dpi:stmt_release(Stmt_Exist3),
-    dpi:stmt_release(Stmt_fetch),
+    dpi:stmt_close(Stmt_Exist3, <<>>),
+    dpi:stmt_close(Stmt_fetch, <<>>),
     ?_assert(true).
 
 
@@ -148,7 +148,7 @@ truncate_table([Context, Conn]) ->
     #{data := Query_refResult} = dpi:stmt_getQueryValue(Stmt_fetch, 1),
     ?assertEqual(10.0, dpi:data_get(Query_refResult)),
     dpi:data_release(Query_refResult),
-    dpi:stmt_release(Stmt_fetch),
+    dpi:stmt_close(Stmt_fetch, <<>>),
     ?CALL(<<"truncate table test_dpi2">>),
 
     Stmt_fetch2 = dpi:conn_prepareStmt(Conn, false, <<"select count(*) from test_dpi2">>, <<"">>),
@@ -157,14 +157,8 @@ truncate_table([Context, Conn]) ->
     #{data := Query_refResult2} = dpi:stmt_getQueryValue(Stmt_fetch2, 1),
     ?assertEqual(0.0,  dpi:data_get(Query_refResult2)),
     dpi:data_release(Query_refResult2),
-    dpi:stmt_release(Stmt_fetch2),
+    dpi:stmt_close(Stmt_fetch2, <<>>),
     ?CALL(<<"drop table test_dpi2">>),
-    ?_assert(true).
-
-drop_nonexistent_table([Context, Conn]) -> 
-    ?CALL(<<"drop table test_dpi3">>),
-    ?CALL(<<"drop table test_dpi3">>),
-    ?assertEqual(false, maps:get(isRecoverable, dpi:context_getError(Context))),
     ?_assert(true).
 
 update_where([Context, Conn]) -> 
@@ -205,7 +199,7 @@ update_where([Context, Conn]) ->
     assert_getQueryValue(Stmt, 4, 14.0),
     assert_getQueryValue(Stmt, 5, 15.0),
 
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
 
     %% drop that table again
     ?CALL(<<"drop table test_dpi4">>), 
@@ -228,7 +222,7 @@ select_from_where([Context, Conn]) ->
     assert_getQueryValue(Stmt, 2, 5.0),
     assert_getQueryValue(Stmt, 3, 6.0),
 
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
     Stmt2 = dpi:conn_prepareStmt(Conn, false, <<"select * from test_dpi5 t1 inner join test_dpi5 t2 on t1.A = t2.C">>, <<"">>),
     Query_cols2 = dpi:stmt_execute(Stmt2, []),
     ?assertEqual(6, Query_cols2),
@@ -241,7 +235,7 @@ select_from_where([Context, Conn]) ->
     assert_getQueryValue(Stmt2, 5, 2.0),
     assert_getQueryValue(Stmt2, 6, 3.0),
 
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt2, <<>>),
     Stmt3 = dpi:conn_prepareStmt(Conn, false, <<"select t1.a, t2.b, t1.c - t2.a * t2.b from test_dpi5 t1 full join test_dpi5 t2 on t1.C > t2.B">>, <<"">>),
     Query_cols3 = dpi:stmt_execute(Stmt3, []),
     ?assertEqual(3, Query_cols3),
@@ -276,7 +270,7 @@ select_from_where([Context, Conn]) ->
     assert_getQueryValue(Stmt3, 2, 99.0),
     assert_getQueryValue(Stmt3, 3, null),
 
-    dpi:stmt_release(Stmt3),
+    dpi:stmt_close(Stmt3, <<>>),
     %% drop that table again
     ?CALL(<<"drop table test_dpi5">>), 
     ?_assert(true).
@@ -289,7 +283,7 @@ get_column_names([Context, Conn]) ->
     ?CALL(<<"create table test_dpi6 (a integer, b integer, c varchar(32))">>), 
     ?CALL(<<"insert into test_dpi6 values (10, 20, 'miau')">>), 
     
-    Stmt = dpi:conn_prepareStmt(Conn, false, <<"select a, b as xyz, a+b, b / a, c, 'foobar' from test_dpi">>, <<"">>),
+    Stmt = dpi:conn_prepareStmt(Conn, false, <<"select a, b as xyz, a+b, b / a, c, 'foobar' from test_dpi6">>, <<"">>),
     ?assertEqual(6, dpi:stmt_execute(Stmt, [])),
 
     assert_getQueryInfo(Stmt, 1, "A", name),
@@ -299,7 +293,7 @@ get_column_names([Context, Conn]) ->
     assert_getQueryInfo(Stmt, 5, "C", name),
     assert_getQueryInfo(Stmt, 6, "'FOOBAR'", name),
     
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
     %% drop that table again
     ?CALL(<<"drop table test_dpi6">>), 
     ?_assert(true).
@@ -318,7 +312,7 @@ bind_by_pos([Context, Conn]) ->
     Result = dpi:stmt_bindValueByPos(Stmt, 3, 'DPI_NATIVE_TYPE_INT64', BindData),
     dpi:data_release(BindData),
     dpi:stmt_execute(Stmt, []),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
     Stmt2 = dpi:conn_prepareStmt(Conn, false, <<"select a, b, c from test_dpi7">>, <<"">>),
     Query_cols = dpi:stmt_execute(Stmt2, []),
     dpi:stmt_fetch(Stmt2),
@@ -326,7 +320,7 @@ bind_by_pos([Context, Conn]) ->
     assert_getQueryValue(Stmt2, 2, 100.0),
     assert_getQueryValue(Stmt2, 3, 323.0),
     
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt2, <<>>),
     ?assertEqual(Query_cols, 3),
     ?CALL(<<"drop table test_dpi7">>), 
     ?_assert(true).
@@ -343,7 +337,7 @@ bind_by_name([Context, Conn]) ->
     dpi:data_setInt64(BindData, 323),
     dpi:stmt_bindValueByName(Stmt, <<"Third">>, 'DPI_NATIVE_TYPE_INT64', BindData),
     dpi:stmt_execute(Stmt, []),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
     Stmt2 = dpi:conn_prepareStmt(Conn, false, <<"select a, b, c from test_dpi8">>, <<"">>),
     Query_cols = dpi:stmt_execute(Stmt2, []),
 
@@ -353,7 +347,7 @@ bind_by_name([Context, Conn]) ->
     assert_getQueryValue(Stmt2, 3, 323.0),
 
     dpi:data_release(BindData),
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt2, <<>>),
     ?assertEqual(Query_cols, 3),
     ?CALL(<<"drop table test_dpi8">>), 
     ?_assert(true).
@@ -383,7 +377,7 @@ in_binding([Context, Conn]) ->
     assert_getQueryValue(Stmt, 2, 7.0),
 
     dpi:data_release(BindData),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
 
     Stmt2 = dpi:conn_prepareStmt(Conn, false, <<"select * from test_dpi9 where c like :A">>, <<"">>),
     BindData2 = dpi:data_ctor(),
@@ -404,7 +398,7 @@ in_binding([Context, Conn]) ->
     assert_getQueryValue(Stmt2, 2, 6.0),
 
     dpi:data_release(BindData2),
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt2, <<>>),
     ?CALL(<<"drop table test_dpi10">>), 
     ?_assert(true).
 
@@ -420,7 +414,7 @@ bind_datatypes([Context, Conn]) ->
     dpi:data_setIntervalYM(BindData, 13, 8),
     dpi:stmt_bindValueByName(Stmt, <<"Third">>, 'DPI_NATIVE_TYPE_INTERVAL_YM',  BindData),
     dpi:stmt_execute(Stmt, []),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
     dpi:conn_commit(Conn),
     Stmt2 = dpi:conn_prepareStmt(Conn, false, <<"select a, b, c from test_dpi10">>, <<"">>),
     Query_cols = dpi:stmt_execute(Stmt2, []),
@@ -435,7 +429,7 @@ bind_datatypes([Context, Conn]) ->
     
     dpi:data_release(QueryValueRef),
     dpi:data_release(BindData),
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt2, <<>>),
     ?assertEqual(Query_cols, 3),
     ?CALL(<<"drop table test_dpi10">>), 
     ?_assert(true).
@@ -451,7 +445,7 @@ tz_test([Context, Conn]) ->
     dpi:data_setTimestamp(TimestampData, 2003, 1, 2, 3, 44, 56, 123456, 22, 8), % timezones are discarded when doing the value bind, this is by ODPI design
     dpi:stmt_bindValueByName(Stmt, <<"A">>, 'DPI_NATIVE_TYPE_TIMESTAMP', TimestampData),
     dpi:stmt_execute(Stmt, []),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
     dpi:conn_commit(Conn),
     Stmt2 = dpi:conn_prepareStmt(Conn, false, <<"select c_tstz from timezones where c_id = 2">>, <<"">>),
     dpi:stmt_execute(Stmt2, []),
@@ -461,7 +455,7 @@ tz_test([Context, Conn]) ->
     ?assertEqual(#{fsecond => 123456, second => 56, minute => 44, hour => 3, day => 2, month => 1, year => 2003, tzMinuteOffset => -13, tzHourOffset => -7 },   dpi:data_get(TZData)),
     dpi:data_release(TZData),
     dpi:data_release(TimestampData),
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt2, <<>>),
      
     ?_assert(true).
 
@@ -479,14 +473,14 @@ pt_test([Context, Conn]) ->
      ?assertEqual(Type, 'DPI_NATIVE_TYPE_DOUBLE'),
      ?assertEqual(Query_cols, 5),
      dpi:data_release(Result),
-     dpi:stmt_release(Stmt),
+     dpi:stmt_close(Stmt, <<>>),
      ?_assert(true).
 
 fail_stmt_released_too_early([Context, Conn]) -> 
     Failure = fun()->
         SQL = <<"select 12345, 2, 4, 8.5, 'miau' from dual">>,
         Stmt = dpi:conn_prepareStmt(Conn, false, SQL, <<"">>),
-        dpi:stmt_release(Stmt),
+        dpi:stmt_close(Stmt, <<>>),
         Query_cols = dpi:stmt_execute(Stmt, []),
         dpi:stmt_fetch(Stmt),
         #{nativeTypeNum := Type, data := Result} = dpi:stmt_getQueryValue(Stmt, 1),
@@ -494,7 +488,7 @@ fail_stmt_released_too_early([Context, Conn]) ->
         ?assertEqual(Type, 'DPI_NATIVE_TYPE_DOUBLE'),
         ?assertEqual(Query_cols, 5),
         dpi:data_release(Result),
-        dpi:stmt_release(Stmt),
+        dpi:stmt_close(Stmt, <<>>),
         ?_assert(true)
     end,
     try Failure(Context, Conn) of
@@ -515,14 +509,14 @@ define_type([Context, Conn]) ->
     dpi:stmt_execute(Stmt, []),
     dpi:stmt_fetch(Stmt),
     assert_getQueryValue(Stmt, 1, 123.0),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
 
     Stmt2 = dpi:conn_prepareStmt(Conn, false, <<"select a from test_dpi11">>, <<"">>),
     dpi:stmt_execute(Stmt2, []),
     dpi:stmt_defineValue(Stmt2, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0, false, null),
     dpi:stmt_fetch(Stmt2),
     assert_getQueryValue(Stmt2, 1, 123),
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt2, <<>>),
     
     ?_assert(true).
 
@@ -542,7 +536,7 @@ iterate([Context, Conn]) ->
         Stmt = dpi:conn_prepareStmt(Conn, false, <<"insert into test_dpi12 values (:A, :B, :C, :D, :E )">>, <<"">>),
         [ bindByPos(Stmt, Pos, 'DPI_NATIVE_TYPE_INT64', fun dpi:data_setInt64/2, Value)|| {Value, Pos} <-iozip(Row)],
         dpi:stmt_execute(Stmt, []),
-        dpi:stmt_release(Stmt)
+        dpi:stmt_close(Stmt, <<>>)
     end,
 
     [InsertRow(X) || X <- Content],
@@ -560,7 +554,7 @@ iterate([Context, Conn]) ->
         end
     end,
     R = [[extract_getQueryInfo(Stmt, X, name) || X <- iota(Length)]] ++ Rec([]),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
     ?_assertEqual(LittleBobbyTables, R).
 
 commit_rollback([Context, Conn]) -> 
@@ -574,7 +568,7 @@ commit_rollback([Context, Conn]) ->
     dpi:stmt_execute(Stmt, []),
     dpi:stmt_fetch(Stmt),
     assert_getQueryValue(Stmt, 1, 1.0),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
 
     ?CALL(<<"insert into test_dpi13 values(456)">>),    %% contains 2 rows
     
@@ -582,7 +576,7 @@ commit_rollback([Context, Conn]) ->
     dpi:stmt_execute(Stmt2, []),
     dpi:stmt_fetch(Stmt2),
     assert_getQueryValue(Stmt2, 1, 2.0),
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt2, <<>>),
 
     dpi:conn_rollback(Conn),                            %% contains 1 row again
     
@@ -590,7 +584,7 @@ commit_rollback([Context, Conn]) ->
     dpi:stmt_execute(Stmt3, []),
     dpi:stmt_fetch(Stmt3),
     assert_getQueryValue(Stmt3, 1, 1.0),
-    dpi:stmt_release(Stmt3),
+    dpi:stmt_close(Stmt3, <<>>),
     ?_assert(true).
 
 ping_close([Context, Conn]) -> 
@@ -660,7 +654,7 @@ var_define([Context, Conn]) ->
     dpi:var_release(Var5),
     [dpi:data_release(X) || X <- DataRep5],
 
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
     ?_assert(true).
 
 var_bind([Context, Conn]) -> 
@@ -706,8 +700,8 @@ var_bind([Context, Conn]) ->
     dpi:var_release(Var2),
     [dpi:data_release(X) || X <- DataRep2],
     
-    dpi:stmt_release(Stmt),
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt, <<>>),
+    dpi:stmt_close(Stmt2, <<>>),
 
     ?_assert(true).
 
@@ -733,7 +727,7 @@ var_setFromBytes([Context, Conn]) ->
 
     dpi:var_release(Var),
     [dpi:data_release(X) || X <- DataRep],
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
 
     ?_assert(true).
 
@@ -845,7 +839,7 @@ simple_fetch_no_assert([Context, Conn]) ->
     Type = 'DPI_NATIVE_TYPE_DOUBLE',
     Query_cols = 5,
     dpi:data_release(Result),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
     ok.
 
 var_bind_no_assert([Context, Conn]) -> 
@@ -898,8 +892,8 @@ var_bind_no_assert([Context, Conn]) ->
     dpi:var_release(Var2),
     [dpi:data_release(X) || X <- DataRep2],
     
-    dpi:stmt_release(Stmt),
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt, <<>>),
+    dpi:stmt_close(Stmt2, <<>>),
 
     ok.
 
@@ -949,12 +943,12 @@ get_num_query_cols([Context, Conn]) ->
     Stmt = dpi:conn_prepareStmt(Conn, false, <<"select 12345 from dual">>, <<"">>),
     1 = dpi:stmt_execute(Stmt, []),
     ?assertEqual(1, dpi:stmt_getNumQueryColumns(Stmt)),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
 
     Stmt2 = dpi:conn_prepareStmt(Conn, false, <<"select 1, 2, 3, 4, 5 from dual">>, <<"">>),
     5 = dpi:stmt_execute(Stmt2, []),
     ?assertEqual(5, dpi:stmt_getNumQueryColumns(Stmt2)),
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt2, <<>>),
     ?_assert(true).
 
 -define(TESTPROCEDURE, "ERLOCI_TEST_PROCEDURE").
@@ -988,8 +982,8 @@ stored_procedure([Context, Conn]) ->
     ?assertEqual(3,dpi:data_get(DataRep3)), %% before executing the procedure, hast the old value
     dpi:stmt_execute(Stmt2, []),
     ?assertEqual(51,dpi:data_get(DataRep3)), %% now has the new value of 50 added to the char value of "1             "
-    dpi:stmt_release(Stmt),
-    dpi:stmt_release(Stmt2),
+    dpi:stmt_close(Stmt, <<>>),
+    dpi:stmt_close(Stmt2, <<>>),
  
     dpi:var_release(Var1),
     dpi:data_release(DataRep1),
@@ -1018,7 +1012,7 @@ ref_cursor([Context, Conn]) ->
         <<"">>
     ),
     ?assertEqual(0, dpi:stmt_execute(CreateStmt, [])),
-    ?assertEqual(ok, dpi:stmt_release(CreateStmt)),
+    ?assertEqual(ok, dpi:stmt_close(CreateStmt, <<>>)),
 
     #{var := VarStmt, data := [DataStmt]} = dpi:conn_newVar(
         Conn, 'DPI_ORACLE_TYPE_STMT', 'DPI_NATIVE_TYPE_STMT', 1, 0,
@@ -1060,7 +1054,36 @@ ref_cursor([Context, Conn]) ->
 
     dpi:data_release(DataStmt),
     dpi:var_release(VarStmt),
-    dpi:stmt_release(Stmt),
+    dpi:stmt_close(Stmt, <<>>),
+    ?_assert(true).
+
+-define(CONN_ID, "oranif_eunit_set_client_id_test").
+set_client_id([_Context, Conn]) ->
+    CountStmt = dpi:conn_prepareStmt(
+        Conn, false,
+        <<
+            "select count(*) from gv$session s join gv$process p "
+            "on p.addr = s.paddr and p.inst_id = s.inst_id "
+            "where s.CLIENT_IDENTIFIER = '"?CONN_ID"'"
+        >>,
+        <<"">>
+    ),
+    dpi:stmt_execute(CountStmt, []),
+    dpi:stmt_fetch(CountStmt),
+    #{data := CIMatchCountData} = dpi:stmt_getQueryValue(CountStmt, 1),
+    CIMatchCount = dpi:data_get(CIMatchCountData),
+    dpi:data_release(CIMatchCountData),
+    ?assertEqual(0.0, CIMatchCount),
+
+    ?assertEqual(ok, dpi:conn_setClientIdentifier(Conn, <<?CONN_ID>>)),
+    dpi:stmt_execute(CountStmt, []),
+    dpi:stmt_fetch(CountStmt),
+    #{data := CIMatchCountData1} = dpi:stmt_getQueryValue(CountStmt, 1),
+    CIMatchCount1 = dpi:data_get(CIMatchCountData1),
+    dpi:data_release(CIMatchCountData1),
+    ?assertEqual(1.0, CIMatchCount1),
+
+    dpi:stmt_close(CountStmt, <<>>),
     ?_assert(true).
 
 %% create table                              ✓
@@ -1143,7 +1166,7 @@ s() ->
 
 stop([Context, Conn]) ->
     %?debugMsg("Teardown of test, but there is nothing to do (dtors should take care of freeing the resources)"),
-    dpi:conn_release(Conn),
+    catch dpi:conn_close(Conn, [], <<"">>),
     dpi:context_destroy(Context),
     ok.
 
@@ -1182,10 +1205,8 @@ stop([Context, Conn]) ->
 %        fun ref_cursor/1
 %    ]}].
 
--define(NODE, testnode).
 slave_reuse_test() ->
     ?assertEqual(ok, dpi:load_unsafe()),
-    put(dpi_node, node()),
     ?debugFmt("procs in NIF ~p", [dpi:pids_get()]),
 
     RxTO = 1000, % 5 seconds
@@ -1208,26 +1229,36 @@ slave_reuse_test() ->
     ?assertEqual(ok, receive {Pid3, loaded} -> ok after RxTO -> timeout end),
     ?assertEqual(ok, receive {Pid4, loaded} -> ok after RxTO -> timeout end),
 
-    ?assertEqual(ok, dpi:unload()),
+    ?debugHere,
+
+    ?assertEqual(ok, dpi:unload(node())),
     ?assertEqual(
         lists:usort([Pid1, Pid2, Pid3, Pid4]),
         lists:usort(dpi:pids_get())
     ),
+
+    ?debugHere,
 
     Pid1 ! unload,
     Pid2 ! exit,
     Pid3 ! unload,
     Pid4 ! exit,
 
+    ?debugHere,
+
     ?assertEqual(ok, receive {Pid1, unloaded} -> ok after RxTO -> timeout end),
     ?assertEqual(ok, receive {Pid2, exited} -> ok after RxTO -> timeout end),
     ?assertEqual(ok, receive {Pid3, unloaded} -> ok after RxTO -> timeout end),
     ?assertEqual(ok, receive {Pid4, exited} -> ok after RxTO -> timeout end),
 
+    ?debugHere,
+
     ?assertEqual(false, is_process_alive(Pid1)),
     ?assertEqual(false, is_process_alive(Pid2)),
     ?assertEqual(false, is_process_alive(Pid3)),
     ?assertEqual(false, is_process_alive(Pid4)),
+
+    ?debugHere,
 
     ?assertEqual(
         lists:usort([self(), Pid2, Pid3]),
@@ -1235,14 +1266,15 @@ slave_reuse_test() ->
     ).
     
 slave_client_proc(TestPid) ->
+    Node = node(),
     receive
         load ->
-            ok = dpi:load(?NODE),
+            Node = dpi:load(testnode),
             TestPid ! {self(), loaded},
-            ?debugFmt("~p has ~p", [self(), dpi:safe(dpi, pids_get, [])]),
+            ?debugFmt("~p has ~p", [self(), dpi:safe(Node, dpi, pids_get, [])]),
             slave_client_proc(TestPid);
         unload ->
-            ok = dpi:unload(),
+            ok = dpi:unload(Node),
             TestPid ! {self(), unloaded};
         exit ->
             TestPid ! {self(), exited}
