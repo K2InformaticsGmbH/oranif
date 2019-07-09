@@ -27,13 +27,13 @@ contextCreate(TestCtx) ->
 contextCreateBadMaj(TestCtx) ->
     ?assertException(
         error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, context_create, [foobar, ?DPI_MINOR_VERSION])
+        dpiCall(TestCtx, context_create, [-1, ?DPI_MINOR_VERSION])
     ).
 
 contextCreateBadMin(TestCtx) ->
     ?assertException(
         error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, context_create, [?DPI_MAJOR_VERSION, foobar])
+        dpiCall(TestCtx, context_create, [?DPI_MAJOR_VERSION, -1])
     ).
 
 % fails due to nonsense major version
@@ -50,7 +50,7 @@ contextDestroy(TestCtx) ->
 
 contextDestroyBadContext(TestCtx) ->
    ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, context_destroy, [foobar])).
+        dpiCall(TestCtx, context_destroy, [make_ref()])).
 
 contextDestroyBadContextState(TestCtx) ->
     Context = dpiCall(
@@ -63,11 +63,11 @@ contextDestroyBadContextState(TestCtx) ->
         dpiCall(TestCtx, context_destroy, [Context])).
 
 contextGetClientVersion(TestCtx) -> 
-    Context = dpiCall(TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]),
-
-    #{
-        releaseNum := CRNum, versionNum := CVNum, fullVersionNum := CFNum
-    } = dpiCall(TestCtx, context_getClientVersion, [Context]),
+    Context = dpiCall(
+        TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
+    ),
+    #{releaseNum := CRNum, versionNum := CVNum, fullVersionNum := CFNum } = 
+        dpiCall(TestCtx, context_getClientVersion, [Context]),
 
     ?assert(is_integer(CRNum)),
     ?assert(is_integer(CVNum)),
@@ -79,14 +79,12 @@ contextGetClientVersionBadContext(TestCtx) ->
         dpiCall(TestCtx, context_getClientVersion, [foobar])),
     dpiCall(TestCtx, context_destroy, [Context]).
 
-%% fails due to invalid context
-contextGetClientVersionFail(TestCtx) -> 
-    Context = dpiCall(TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]),
-    ?assertEqual(ok, dpiCall(TestCtx, context_destroy, [Context])), %% context is now invalid
+% fails due to a wrong handle being passed
+contextGetClientVersionFail(TestCtx) ->
+    BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, context_getClientVersion, [foobar])). %% try to get client version of invalid context.
-
-
+        dpiCall(TestCtx, context_getClientVersion, [foobar])),
+    dpiCall(TestCtx, data_release, [BindData]).
 %%
 %% CONN APIS
 %%
