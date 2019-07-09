@@ -106,7 +106,7 @@ slave_call(SlaveNode, Mod, Fun, Args) ->
         Result -> Result
     catch
         _Class:Error ->
-            {error, Error}
+            error(Error)
     end.
 
 rpc_call(Node, Mod, Fun, Args) ->
