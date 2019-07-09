@@ -18,27 +18,26 @@
 %-------------------------------------------------------------------------------
 
 contextCreate(TestCtx) ->
-    ?debugFmt("testctx ~p", [TestCtx]),
     Context = dpiCall(
         TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
     ),
     ?assert(is_reference(Context)),
     dpiCall(TestCtx, context_destroy, [Context]).
 
-contextCreate_NegativeMajType(TestCtx) ->
+contextCreateBadMaj(TestCtx) ->
     ?assertException(
         error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, context_create, [foobar, ?DPI_MINOR_VERSION])
     ).
 
-contextCreate_NegativeMinType(TestCtx) ->
+contextCreateBadMin(TestCtx) ->
     ?assertException(
         error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, context_create, [?DPI_MAJOR_VERSION, foobar])
     ).
 
 % fails due to nonsense major version
-contextCreate_NegativeFailCall(TestCtx) ->
+contextCreateFail(TestCtx) ->
     ?assertException(error, {error, _},
         dpiCall(TestCtx, context_create, [1337, ?DPI_MINOR_VERSION])),
     ok.
@@ -50,12 +49,12 @@ contextDestroy(TestCtx) ->
     ?assertEqual(ok, dpiCall(TestCtx, context_destroy, [Context])),
     ok.
 
-contextDestroy_BadContext(TestCtx) ->
+contextDestroyBadContext(TestCtx) ->
    ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, context_destroy, [foobar])),
     ok.
 
-contextDestroy_NegativeContextState(TestCtx) ->
+contextDestroyBadContextState(TestCtx) ->
     Context = dpiCall(
         TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
     ),
@@ -77,7 +76,7 @@ contextGetClientVersion(TestCtx) ->
     ?assert(is_integer(CVNum)),
     ?assert(is_integer(CFNum)).
 
-contextGetClientVersion_NegativeContextType(TestCtx) -> 
+contextGetClientVersionBadContext(TestCtx) -> 
     Context = dpiCall(TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, context_getClientVersion, [foobar])),
@@ -85,7 +84,7 @@ contextGetClientVersion_NegativeContextType(TestCtx) ->
     ok.
 
 %% fails due to invalid context
-contextGetClientVersion_NegativeFailCall(TestCtx) -> 
+contextGetClientVersionFail(TestCtx) -> 
     Context = dpiCall(TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]),
     ?assertEqual(ok, dpiCall(TestCtx, context_destroy, [Context])), %% context is now invalid
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -104,7 +103,7 @@ connCreate(#{context := Context} = TestCtx) ->
     ?assert(is_reference(Conn)),
     dpiCall(TestCtx, conn_close, [Conn, [], <<>>]).
 
-connCreate_BadContext(TestCtx) ->
+connCreateBadContext(TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     ?assertException(
         error, {error, _File, _Line, _Exception},
@@ -116,42 +115,42 @@ connCreate_BadContext(TestCtx) ->
         )
     ).
 
-connCreate_NegativeUsernameType(#{context := Context} = TestCtx) ->
+connCreateBadUsername(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := _User, password := Password} = getConfig(),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_create, [Context, foobar, Password, Tns,
             #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}])),
     ok.
 
-connCreate_NegativePassType(#{context := Context} = TestCtx) ->
+connCreateBadPass(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := _Password} = getConfig(),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_create, [Context, User, foobat, Tns,
             #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}])),
     ok.
 
-connCreate_NegativeTNSType(#{context := Context} = TestCtx) ->
+connCreateBadTNS(#{context := Context} = TestCtx) ->
     #{tns := _Tns, user := User, password := Password} = getConfig(),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_create, [Context, User, Password, foobar,
             #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}])),
     ok.
 
-connCreate_NegativeParamsType(#{context := Context} = TestCtx) ->
+connCreateBadParams(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
             foobar, #{}])),
     ok.
 
-connCreate_NegativeEncodingType(#{context := Context} = TestCtx) ->
+connCreateBadEncoding(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
             #{encoding =>foobar, nencoding => "AL32UTF8"}, #{}])),
     ok.
 
-connCreate_NegativeNencodingType(#{context := Context} = TestCtx) ->
+connCreateBadNencoding(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
@@ -159,7 +158,7 @@ connCreate_NegativeNencodingType(#{context := Context} = TestCtx) ->
     ok.
 
 %% fails due to invalid user/pass combination
-connCreate_NegativeFailCall(#{context := Context} = TestCtx) ->
+connCreateFail(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_create, [Context, <<"Chuck">>, <<"Norris">>, Tns,
@@ -172,33 +171,33 @@ connPrepareStmt(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-connPrepareStmt_emptyTag(#{session := Conn} = TestCtx) ->
+connPrepareStmtEmptyTag(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"miau">>, <<"">>]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-connPrepareStmt_NegativeConnType(TestCtx) ->
+connPrepareStmtBadConn(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_prepareStmt, [foobar, false, <<"miau">>, <<"">>])),
     ok.
 
-connPrepareStmt_NegativeScrollableType(#{session := Conn} = TestCtx) ->
+connPrepareStmtBadScrollable(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_prepareStmt, [Conn, "foobar", <<"miau">>, <<>>])),
     ok.
 
-connPrepareStmt_NegativeSQLType(#{session := Conn} = TestCtx) ->
+connPrepareStmtBadSQL(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_prepareStmt, [Conn, false, foobar, <<"">>])),
     ok.
 
-connPrepareStmt_NegativeTagType(#{session := Conn} = TestCtx) ->
+connPrepareStmtBadTag(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"miau">>, foobar])),
     ok.
 
 %% fails due to both SQL and Tag being empty
-connPrepareStmt_NegativeFailCall(#{session := Conn} = TestCtx) ->
+connPrepareStmtFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"">>, <<"">>])),
     ok.
@@ -213,48 +212,48 @@ connNewVar(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-connNewVar_NegativeConnType(#{session := Conn} = TestCtx) ->
+connNewVarBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_newVar, [foobar, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null])),
     ok.
 
-connNewVar_NegativeOraTypeType(#{session := Conn} = TestCtx) ->
+connNewVarBadOraType(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_newVar, [Conn, "foobar", 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null])),
     ok.
 
-connNewVar_NegativeDpiTypeType(#{session := Conn} = TestCtx) ->
+connNewVarBadDpiType(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', "foobar", 100, 0, false, false, null])),
     ok.
 
-connNewVar_NegativeArraySizeType(#{session := Conn} = TestCtx) ->
+connNewVarBadArraySize(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', foobar, 0, false, false, null])),
     ok.
 
-connNewVar_NegativeSizeType(#{session := Conn} = TestCtx) ->
+connNewVarBadSize(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, foobar, false, false, null])),
     ok.
 
-connNewVar_NegativeSizeIsBytesType(#{session := Conn} = TestCtx) ->
+connNewVarBadSizeIsBytes(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, "foobar", false, null])),
     ok.
 
-connNewVar_NegativeIsArrayType(#{session := Conn} = TestCtx) ->
+connNewVarBadArray(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, "foobar", null])),
     ok.
 
-connNewVar_NegativeObjTypeType(#{session := Conn} = TestCtx) ->
+connNewVarBadObjType(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, "foobar"])),
     ok.
 
 %% fails due to array size being 0
-connNewVar_NegativeFailCall(#{session := Conn} = TestCtx) ->
+connNewVarFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 0, 0, false, false, null])),
     ok.
@@ -264,13 +263,13 @@ connCommit(#{session := Conn} = TestCtx) ->
     ?assertEqual(ok, Result),
     ok.
   
-connCommit_NegativeConnType(#{session := Conn} = TestCtx) ->
+connCommitBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_commit, [foobar])),
     ok.
 
 %% fails due to the reference being wrong
-connCommit_NegativeFailCall(#{context := Context} = TestCtx) ->
+connCommitFail(#{context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_commit, [Context])),
     ok.
@@ -280,13 +279,13 @@ connRollback(#{session := Conn} = TestCtx) ->
     ?assertEqual(ok, Result),
     ok.
   
-connRollback_NegativeConnType(#{session := Conn} = TestCtx) ->
+connRollbackBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_rollback, [foobar])),
     ok.
 
 %% fails due to the reference being wrong
-connRollback_NegativeFailCall(#{context := Context} = TestCtx) ->
+connRollbackFail(#{context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_rollback, [Context])),
     ok.
@@ -296,13 +295,13 @@ connPing(#{session := Conn} = TestCtx) ->
     ?assertEqual(ok, Result),
     ok.
   
-connPing_NegativeConnType(#{session := Conn} = TestCtx) ->
+connPingBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_ping, [foobar])),
     ok.
 
 %% fails due to the reference being wrong
-connPing_NegativeFailCall(#{context := Context} = TestCtx) ->
+connPingFail(#{context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_ping, [Context])),
     ok.
@@ -323,33 +322,33 @@ connCloseWithModes(#{context := Context} = TestCtx) ->
     ?assertEqual(ok, Result),
     ok.
   
-connClose_NegativeConnType(#{session := Conn} = TestCtx) ->
+connCloseBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_close, [foobar, [], <<"">>])),
     ok.
 
-connClose_NegativeModesType(#{session := Conn} = TestCtx) ->
+connCloseBadModes(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_close, [Conn, foobar, <<"">>])),
     ok.
 
-connClose_NegativeModeInsideType(#{session := Conn} = TestCtx) ->
+connCloseBadModesInside(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_close, [Conn, ["not an atom"], <<"">>])),
     ok.
 
-connClose_NegativeInvalidMode(#{session := Conn} = TestCtx) ->
+connCloseInvalidMode(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_close, [Conn, [foobar], <<"">>])),
     ok.
 
-connClose_NegativeTagType(#{session := Conn} = TestCtx) ->
+connCloseBadTag(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_close, [Conn, [], foobar])),
     ok.
 
 %% fails due to the reference being wrong
-connClose_NegativeFailCall(#{context := Context} = TestCtx) ->
+connCloseFail(#{context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_close, [Context, [], <<"">>])),
     ok.
@@ -368,13 +367,13 @@ connGetServerVersion(#{session := Conn} = TestCtx) ->
     ?assert(is_list(ReleaseString)),
     ok.
   
-connGetServerVersion_NegativeConnType(#{session := Conn} = TestCtx) ->
+connGetServerVersionBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_getServerVersion, [foobar])),
     ok.
 
 %% fails due to the reference being completely wrong (apparently passing a released connection isn't bad enough)
-connGetServerVersion_NegativeFailCall(#{context := Context} = TestCtx) ->
+connGetServerVersionFail(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     Conn = dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
             #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
@@ -402,19 +401,19 @@ stmtExecuteWithModes(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtExecute_NegativeStmtType(#{session := Conn} = TestCtx) ->
+stmtExecutebadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_execute, [foobar, []])),
     ok.
 
-stmtExecute_NegativeModesType(#{session := Conn} = TestCtx) ->
+stmtExecuteBadModes(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_execute, [Stmt, foobar])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtExecute_NegativeModeInsideType(#{session := Conn} = TestCtx) ->
+stmtExecuteBadModesInside(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_execute, [Stmt, ["not an atom"]])),
@@ -422,7 +421,7 @@ stmtExecute_NegativeModeInsideType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to the SQL being invalid
-stmtExecute_NegativeFailCall(#{session := Conn, context := Context} = TestCtx) ->
+stmtExecuteFail(#{session := Conn, context := Context} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"all your base are belong to us">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_execute, [Stmt, []])),
@@ -438,13 +437,13 @@ stmtFetch(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtFetch_NegativeStmtType(#{session := Conn} = TestCtx) ->
+stmtFetchBadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_fetch, [foobar])),
     ok.
 
 %% fails due to the reference being of the wrong type
-stmtFetch_NegativeFailCall(#{session := Conn, context := Context} = TestCtx) ->
+stmtFetchFail(#{session := Conn, context := Context} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi (a) values (1337)">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_fetch, [Conn])),
@@ -462,12 +461,12 @@ stmtGetQueryValue(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtGetQueryValue_NegativeStmtType(#{session := Conn} = TestCtx) ->
+stmtGetQueryValueBadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_getQueryValue, [foobar, 1])),
     ok.
 
-stmtGetQueryValue_NegativePosType(#{session := Conn} = TestCtx) ->
+stmtGetQueryValueBadPos(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1337 from dual">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_getQueryValue, [Stmt, foobar])),
@@ -475,7 +474,7 @@ stmtGetQueryValue_NegativePosType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to the fetch not being done
-stmtGetQueryValue_NegativeFailCall(#{session := Conn} = TestCtx) ->
+stmtGetQueryValueFail(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1337 from dual">>, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -491,12 +490,12 @@ stmtGetQueryInfo(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtGetQueryInfo_NegativeStmtType(#{session := Conn} = TestCtx) ->
+stmtGetQueryInfoBadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_getQueryInfo, [foobar, 1])),
     ok.
 
-stmtGetQueryInfo_NegativePosType(#{session := Conn} = TestCtx) ->
+stmtGetQueryInfoBadPos(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1337 from dual">>, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -505,7 +504,7 @@ stmtGetQueryInfo_NegativePosType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to the SQL being bad
-stmtGetQueryInfo_NegativeFailCall(#{session := Conn} = TestCtx) ->
+stmtGetQueryInfoFail(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"bibidi babidi boo">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1])),
@@ -519,14 +518,14 @@ stmtGetNumQueryColumns(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtGetNumQueryColumns_NegativeStmtType(#{session := Conn} = TestCtx) ->
+stmtGetNumQueryColumnsBadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_getNumQueryColumns, [foobar])),
     ok.
 
 
 %% fails due to the statement being released too early
-stmtGetNumQueryColumns_NegativeFailCall(#{session := Conn} = TestCtx) ->
+stmtGetNumQueryColumnsFail(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"it is showtime">>, <<"">>]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -544,14 +543,14 @@ stmtBindValueByPos(#{session := Conn} = TestCtx) ->
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ok.
 
-stmtBindValueByPos_NegativeStmtType(#{session := Conn} = TestCtx) -> 
+stmtBindValueByPosBadStmt(#{session := Conn} = TestCtx) -> 
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
     dpiCall(TestCtx, stmt_bindValueByPos, [foobar, 1, 'DPI_NATIVE_TYPE_INT64', BindData])),
     dpiCall(TestCtx, data_release, [BindData]),
     ok.
 
-stmtBindValueByPos_NegativePosType(#{session := Conn} = TestCtx) -> 
+stmtBindValueByPosBadPos(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -560,7 +559,7 @@ stmtBindValueByPos_NegativePosType(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtBindValueByPos_NegativeTypeType(#{session := Conn} = TestCtx) -> 
+stmtBindValueByPosBadTpye(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -569,7 +568,7 @@ stmtBindValueByPos_NegativeTypeType(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtBindValueByPos_NegativeDataType(#{session := Conn} = TestCtx) -> 
+stmtBindValueByPosBadData(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_bindValueByPos, [Stmt, 1, 'DPI_NATIVE_TYPE_INT64', foobar])),
@@ -577,7 +576,7 @@ stmtBindValueByPos_NegativeDataType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to the position being invalid
-stmtBindValueByPos_NegativeFailCall(#{session := Conn} = TestCtx) -> 
+stmtBindValueByPosFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
@@ -601,14 +600,14 @@ stmtBindValueByName(#{session := Conn} = TestCtx) ->
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ok.
 
-stmtBindValueByName_NegativeStmtType(#{session := Conn} = TestCtx) -> 
+stmtBindValueByNameBadStmt(#{session := Conn} = TestCtx) -> 
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
     dpiCall(TestCtx, stmt_bindValueByName, [foobar, <<"A">>, 'DPI_NATIVE_TYPE_INT64', BindData])),
     dpiCall(TestCtx, data_release, [BindData]),
     ok.
 
-stmtBindValueByName_NegativePosType(#{session := Conn} = TestCtx) -> 
+stmtBindValueByNameBadPos(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -617,7 +616,7 @@ stmtBindValueByName_NegativePosType(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtBindValueByName_NegativeTypeType(#{session := Conn} = TestCtx) -> 
+stmtBindValueByNameBadPosType(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -626,7 +625,7 @@ stmtBindValueByName_NegativeTypeType(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtBindValueByName_NegativeDataType(#{session := Conn} = TestCtx) -> 
+stmtBindValueByNameBadData(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_bindValueByName, [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', foobar])),
@@ -634,7 +633,7 @@ stmtBindValueByName_NegativeDataType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to bad data handle passing
-stmtBindValueByName_NegativeFailCall(#{session := Conn} = TestCtx) -> 
+stmtBindValueByNameFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
@@ -659,7 +658,7 @@ stmtBindByPos(#{session := Conn} = TestCtx) ->
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ok.
 
-stmtBindByPos_NegativeStmtType(#{session := Conn} = TestCtx) -> 
+stmtBindByPosBadStmt(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     #{var := Var, data := Data} = 
@@ -671,7 +670,7 @@ stmtBindByPos_NegativeStmtType(#{session := Conn} = TestCtx) ->
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ok.
 
-stmtBindByPos_NegativePosType(#{session := Conn} = TestCtx) -> 
+stmtBindByPosBadPos(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
@@ -685,7 +684,7 @@ stmtBindByPos_NegativePosType(#{session := Conn} = TestCtx) ->
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ok.
 
-stmtBindByPos_NegativeVarType(#{session := Conn} = TestCtx) -> 
+stmtBindByPosBadVar(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
@@ -696,7 +695,7 @@ stmtBindByPos_NegativeVarType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to the position being invalid
-stmtBindByPos_NegativeFailCall(#{session := Conn} = TestCtx) -> 
+stmtBindByPosFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
@@ -723,7 +722,7 @@ stmtBindByName(#{session := Conn} = TestCtx) ->
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ok.
 
-stmtBindByName_NegativeStmtType(#{session := Conn} = TestCtx) -> 
+stmtBindByNameBadStmt(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     #{var := Var, data := Data} = 
@@ -735,7 +734,7 @@ stmtBindByName_NegativeStmtType(#{session := Conn} = TestCtx) ->
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ok.
 
-stmtBindByName_NegativePosType(#{session := Conn} = TestCtx) -> 
+stmtBindByNameBadPos(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
@@ -749,7 +748,7 @@ stmtBindByName_NegativePosType(#{session := Conn} = TestCtx) ->
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ok.
 
-stmtBindByName_NegativeVarType(#{session := Conn} = TestCtx) -> 
+stmtBindByNameBadVar(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
@@ -760,7 +759,7 @@ stmtBindByName_NegativeVarType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to the position being invalid
-stmtBindByName_NegativeFailCall(#{session := Conn} = TestCtx) -> 
+stmtBindByNameFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
@@ -785,7 +784,7 @@ stmtDefine(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtDefine_NegativeStmtType(#{session := Conn} = TestCtx) -> 
+stmtDefineBadStmt(#{session := Conn} = TestCtx) -> 
     #{var := Var, data := Data} =
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -794,7 +793,7 @@ stmtDefine_NegativeStmtType(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-stmtDefine_NegativePosType(#{session := Conn} = TestCtx) -> 
+stmtDefineBadPos(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     #{var := Var, data := Data} =
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null]),
@@ -806,7 +805,7 @@ stmtDefine_NegativePosType(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtDefine_NegativeVarType(#{session := Conn} = TestCtx) -> 
+stmtDefineBadVar(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -815,7 +814,7 @@ stmtDefine_NegativeVarType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to the pos being invalid
-stmtDefine_NegativeFailCall(#{session := Conn} = TestCtx) -> 
+stmtDefineFail(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     #{var := Var, data := Data} =
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null]),
@@ -834,12 +833,12 @@ stmtDefineValue(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-stmtDefineValue_NegativeStmtType(#{session := Conn} = TestCtx) -> 
+stmtDefineValueBadStmt(#{session := Conn} = TestCtx) -> 
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_defineValue, [foobar, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0, false, null])),
     ok.
 
-stmtDefineValue_NegativePosType(#{session := Conn} = TestCtx) -> 
+stmtDefineValueBadPos(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -848,7 +847,7 @@ stmtDefineValue_NegativePosType(#{session := Conn} = TestCtx) ->
     ok.
 
 
-stmtDefineValue_NegativeOraTypeType(#{session := Conn} = TestCtx) -> 
+stmtDefineValueBadOraType(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -857,7 +856,7 @@ stmtDefineValue_NegativeOraTypeType(#{session := Conn} = TestCtx) ->
     ok.
 
 
-stmtDefineValue_NegativeNativeTypeType(#{session := Conn} = TestCtx) -> 
+stmtDefineValueBadNativeType(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -866,7 +865,7 @@ stmtDefineValue_NegativeNativeTypeType(#{session := Conn} = TestCtx) ->
     ok.
 
 
-stmtDefineValue_NegativeSizeType(#{session := Conn} = TestCtx) -> 
+stmtDefineValueBadSize(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -875,7 +874,7 @@ stmtDefineValue_NegativeSizeType(#{session := Conn} = TestCtx) ->
     ok.
 
 
-stmtDefineValue_NegativeSizeInBytesType(#{session := Conn} = TestCtx) -> 
+stmtDefineValueBadSizeInBytes(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -884,7 +883,7 @@ stmtDefineValue_NegativeSizeInBytesType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to invalid position
-stmtDefineValue_NegativeFailCall(#{session := Conn} = TestCtx) -> 
+stmtDefineValueFail(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -908,12 +907,12 @@ varSetNumElementsInArray(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-varSetNumElementsInArray_NegativeVarType(#{session := Conn} = TestCtx) ->
+varSetNumElementsInArrayBadVar(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, var_setNumElementsInArray, [foobar, 100])),
     ok.
 
-varSetNumElementsInArray_NegativeNumElementsType(#{session := Conn} = TestCtx) ->
+varSetNumElementsInArrayBadNumElements(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
@@ -927,7 +926,7 @@ varSetNumElementsInArray_NegativeNumElementsType(#{session := Conn} = TestCtx) -
     ok.
 
 %% fails due to invalid array size
-varSetNumElementsInArray_NegativeFailCall(#{session := Conn} = TestCtx) ->
+varSetNumElementsInArrayFail(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
@@ -953,12 +952,12 @@ varSetFromBytes(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-varSetFromBytes_NegativeVarType(#{session := Conn} = TestCtx) ->
+varSetFromBytesBadVar(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, var_setFromBytes, [foobar, 0, <<"abc">>])),
     ok.
 
-varSetFromBytes_NegativePosType(#{session := Conn} = TestCtx) ->
+varSetFromBytesBadPos(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
@@ -972,7 +971,7 @@ varSetFromBytes_NegativePosType(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-varSetFromBytes_NegativeBinaryType(#{session := Conn} = TestCtx) ->
+varSetFromBytesBadBinary(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
@@ -987,7 +986,7 @@ varSetFromBytes_NegativeBinaryType(#{session := Conn} = TestCtx) ->
     ok.
 
 %% fails due to position being invalid
-varSetFromBytes_NegativeFailCall(#{session := Conn} = TestCtx) ->
+varSetFromBytesFail(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
@@ -1012,13 +1011,13 @@ varRelease(#{session := Conn} = TestCtx) ->
     ?assertEqual(ok, dpiCall(TestCtx, var_release, [Var])),
     ok.
 
-varRelease_NegativeVarType(#{session := Conn} = TestCtx) ->
+varReleaseBadVar(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, var_release, [foobar])),
     ok.
 
 %% fails due to the reference being wrong
-varRelease_NegativeFailCall(#{session := Conn, context := Context} = TestCtx) ->
+varReleaseFail(#{session := Conn, context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, var_release, [Context])),
     ok.
@@ -1055,13 +1054,13 @@ queryInfoGet(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-queryInfoGet_NegativeQueryInfoType(#{session := Conn} = TestCtx) ->
+queryInfoGetBadQueryInfo(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, queryInfo_get, [foobar])),
     ok.
 
 %% fails due to getting a completely wrong reference
-queryInfoGet_NegativeFailCall(#{session := Conn} = TestCtx) ->
+queryInfoGetFail(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     QueryInfoRef = dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -1076,13 +1075,13 @@ queryInfoDelete(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ok.
 
-queryInfoDelete_NegativeQueryInfoType(#{session := Conn} = TestCtx) ->
+queryInfoDeleteBadQueryInfo(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, queryInfo_delete, [foobar])),
     ok.
 
 %% fails due to getting a completely wrong reference
-queryInfoDelete_NegativeFailCall(#{session := Conn} = TestCtx) ->
+queryInfoDeleteFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, queryInfo_delete, [Conn])),
     ok.
@@ -1098,68 +1097,68 @@ dataSetTimestamp(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeDataType(TestCtx) ->
+dataSetTimestampBadData(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [foobar, 1, 2, 3, 4, 5, 6, 7, 8, 9])),
     ok.
 
-dataSetTimestamp_NegativeYearType(TestCtx) ->
+dataSetTimestampBadYear(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, foobar, 2, 3, 4, 5, 6, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeMonthType(TestCtx) ->
+dataSetTimestampBadMonth(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, foobar, 3, 4, 5, 6, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeDayType(TestCtx) ->
+dataSetTimestampBadDay(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, foobar, 4, 5, 6, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeHourType(TestCtx) ->
+dataSetTimestampBadHour(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, foobar, 5, 6, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeMinuteType(TestCtx) ->
+dataSetTimestampBadMinute(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, foobar, 6, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeSecondType(TestCtx) ->
+dataSetTimestampBadSecond(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, foobar, 7, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeFSecondType(TestCtx) ->
+dataSetTimestampBadFSecond(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, foobar, 8, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeTZHourOffsetType(TestCtx) ->
+dataSetTimestampBadTZHourOffset(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, foobar, 9])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_NegativeTZMinuteOffsetType(TestCtx) ->
+dataSetTimestampBadTZMinuteOffset(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, 8, foobar])),
@@ -1168,14 +1167,14 @@ dataSetTimestamp_NegativeTZMinuteOffsetType(TestCtx) ->
 
 %% fails due to the Data ref passed being completely wrong
 %% (it doesn't seem to mind the nonsense parameters. Year -1234567? Sure. Timezone of -22398 hours and 3239 minutes? No problem)
-dataSetTimestamp_NegativeFailCall(#{session := Conn} = TestCtx) ->
+dataSetTimestampFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setTimestamp, [Conn, -1234567, 2, 3, 4, 5, 6, 7, -22398, 3239])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetTimestamp_viaPointer(#{session := Conn} = TestCtx) ->
+dataSetTimestampViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_TIMESTAMP_TZ', 'DPI_NATIVE_TYPE_TIMESTAMP', 1, 1,
@@ -1195,40 +1194,40 @@ dataSetIntervalDS(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalDS_NegativeDataType(TestCtx) ->
+dataSetIntervalDSBadData(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [foobar, 1, 2, 3, 4, 5])),
     ok.
 
-dataSetIntervalDS_NegativeDayType(TestCtx) ->
+dataSetIntervalDSBadDays(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Data, foobar, 2, 3, 4, 5])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalDS_NegativeHoursType(TestCtx) ->
+dataSetIntervalDSBadHours(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, foobar, 3, 4, 5])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalDS_NegativeMinutesType(TestCtx) ->
+dataSetIntervalDSBadMinutes(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, foobar, 4, 5])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalDS_NegativeSecondsType(TestCtx) ->
+dataSetIntervalDSBadSeconds(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, foobar, 5])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalDS_NegativeFSecondsType(TestCtx) ->
+dataSetIntervalDSBadFSeconds(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, 4, foobar])),
@@ -1236,14 +1235,14 @@ dataSetIntervalDS_NegativeFSecondsType(TestCtx) ->
     ok.
 
 %% fails due to the Data ref passed being completely wrong
-dataSetIntervalDS_NegativeFailCall(#{session := Conn} = TestCtx) ->
+dataSetIntervalDSFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Conn, 1, 2, 3, 4, 5])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalDS_viaPointer(#{session := Conn} = TestCtx) ->
+dataSetIntervalDSViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_DS', 'DPI_NATIVE_TYPE_INTERVAL_DS', 1, 1,
@@ -1264,19 +1263,19 @@ dataSetIntervalYM(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalYM_NegativeDataType(TestCtx) ->
+dataSetIntervalYMBadData(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalYM, [foobar, 1, 2])),
     ok.
 
-dataSetIntervalYM_NegativeYearType(TestCtx) ->
+dataSetIntervalYMBadYears(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalYM, [Data, foobar, 2])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalYM_NegativeMonthType(TestCtx) ->
+dataSetIntervalYMBadMonths(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalYM, [Data, 1, foobar])),
@@ -1284,14 +1283,14 @@ dataSetIntervalYM_NegativeMonthType(TestCtx) ->
     ok.
 
 %% fails due to the Data ref passed being completely wrong
-dataSetIntervalYM_NegativeFailCall(#{session := Conn} = TestCtx) ->
+dataSetIntervalYMFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalYM, [Conn, 1, 2])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIntervalYM_viaPointer(#{session := Conn} = TestCtx) ->
+dataSetIntervalYMViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 1,
@@ -1312,12 +1311,12 @@ dataSetInt64(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetInt64_NegativeDataType(TestCtx) ->
+dataSetInt64BadData(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setInt64, [foobar, 1])),
     ok.
 
-dataSetInt64_NegativeAmountType(TestCtx) ->
+dataSetInt64BadAmount(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setInt64, [Data, foobar])),
@@ -1325,14 +1324,14 @@ dataSetInt64_NegativeAmountType(TestCtx) ->
     ok.
 
 %% fails due to the Data ref passed being completely wrong
-dataSetInt64_NegativeFailCall(#{session := Conn} = TestCtx) ->
+dataSetInt64Fail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setInt64, [Conn, 1])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetInt64_viaPointer(#{session := Conn} = TestCtx) ->
+dataSetInt64ViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 1,
@@ -1352,12 +1351,12 @@ dataSetBytes(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetBytes_NegativeDataType(TestCtx) ->
+dataSetBytesBadData(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setBytes, [foobar, <<"my string">>])),
     ok.
 
-dataSetBytes_NegativeBinaryType(TestCtx) ->
+dataSetBytesBadBinary(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setBytes, [Data, foobar])),
@@ -1365,7 +1364,7 @@ dataSetBytes_NegativeBinaryType(TestCtx) ->
     ok.
 
 %% fails due to the Data ref passed being completely wrong
-dataSetBytes_NegativeFailCall(#{session := Conn} = TestCtx) ->
+dataSetBytesFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setBytes, [Conn, <<"my string">>])),
@@ -1386,12 +1385,12 @@ dataSetIsNullFalse(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIsNull_NegativeDataType(TestCtx) ->
+dataSetIsNullBadData(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIsNull, [foobar, 1])),
     ok.
 
-dataSetIsNull_NegativeIsNullType(TestCtx) ->
+dataSetIsNullBadIsNull(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIsNull, [Data, "not an atom"])),
@@ -1399,14 +1398,14 @@ dataSetIsNull_NegativeIsNullType(TestCtx) ->
     ok.
 
 %% fails due to the Data ref passed being completely wrong
-dataSetIsNull_NegativeFailCall(#{session := Conn} = TestCtx) ->
+dataSetIsNullFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIsNull, [Conn, 1])),
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataSetIsNull_viaPointer(#{session := Conn} = TestCtx) ->
+dataSetIsNullViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 1,
@@ -1641,13 +1640,13 @@ dataGetStmtChange(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt2, <<>>]),
     ok.
 
-dataGet_NegativeDataType(TestCtx) ->
+dataGetBadData(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_get, [foobar])),
     ok.
 
 %% fails due to completely wrong reference
-dataGet_NegativeFailCall(#{session := Conn} = TestCtx) ->
+dataGetFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_get, [Conn])),
     ok.
@@ -1660,18 +1659,18 @@ dataGetInt64(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     ok.
 
-dataGetInt64_NegativeDataType(#{session := Conn} = TestCtx) ->
+dataGetInt64BadData(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_getInt64, [foobar]))),
     ok.
 
 %% fails due to completely wrong reference
-dataGetInt64_NegativeFailCall(#{session := Conn} = TestCtx) ->
+dataGetInt64Fail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_getInt64, [Conn]))),
     ok.
 
-dataGetInt64_viaPointer(#{session := Conn} = TestCtx) ->
+dataGetInt64ViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 1, 1,
@@ -1698,13 +1697,13 @@ dataGetBytes(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]),
     ok.
 
-dataGetBytes_NegativeDataType(#{session := Conn} = TestCtx) ->
+dataGetBytesBadData(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_getBytes, [foobar]))),
     ok.
 
 %% fails due to completely wrong reference
-dataGetBytes_NegativeFailCall(#{session := Conn} = TestCtx) ->
+dataGetBytesFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_getBytes, [Conn]))),
     ok.
@@ -1715,18 +1714,18 @@ dataRelease(#{session := Conn} = TestCtx) ->
         (dpiCall(TestCtx, data_release, [Data]))),
     ok.
 
-dataRelease_NegativeDataType(#{session := Conn} = TestCtx) ->
+dataReleaseBadData(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_release, [foobar]))),
     ok.
 
 %% fails due to completely wrong reference
-dataRelease_NegativeFailCall(#{session := Conn} = TestCtx) ->
+dataReleaseFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_release, [Conn]))),
     ok.
 
-dataRelease_viaPointer(#{session := Conn} = TestCtx) ->
+dataReleaseViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 1, 1,
@@ -1777,192 +1776,192 @@ cleanup(#{safe := Safe, session := Connnnection} = Ctx) ->
 cleanup(#{safe := Safe, context := Context} = Ctx) ->
     dpiCall(Ctx, context_destroy, [Context]),
     cleanup(maps:without([context], Ctx));
+% might as well remove this clause
 cleanup(#{safe := true, node := SlaveNode} = Ctx) ->
-    ?debugFmt("UNLOADING! Ctx ~p",[Ctx]), ok;
-    %dpiCall(Ctx, unload, [SlaveNode]);
+    ok;
 cleanup(_) -> ok.
 
 -define(F(__Fn), {??__Fn, fun __Fn/1}).
 
 -define(NO_CONTEXT_TESTS, [
     ?F(contextCreate),
-    ?F(contextCreate_NegativeMajType),
-    ?F(contextCreate_NegativeMinType),
-    ?F(contextCreate_NegativeFailCall),
+    ?F(contextCreateBadMaj),
+    ?F(contextCreateBadMin),
+    ?F(contextCreateFail),
     ?F(contextDestroy),
-    ?F(contextDestroy_BadContext),
-    ?F(contextDestroy_NegativeContextState),
+    ?F(contextDestroyBadContext),
+    ?F(contextDestroyBadContextState),
     ?F(contextGetClientVersion),
-    ?F(contextGetClientVersion_NegativeContextType),
-    ?F(contextGetClientVersion_NegativeFailCall)
+    ?F(contextGetClientVersionBadContext),
+    ?F(contextGetClientVersionFail)
 ]).
 
 -define(AFTER_CONTEXT_TESTS, [
     ?F(connCreate),
-    ?F(connCreate_BadContext),
-    ?F(connCreate_NegativeUsernameType),
-    ?F(connCreate_NegativePassType),
-    ?F(connCreate_NegativeTNSType),
-    ?F(connCreate_NegativeParamsType),
-    ?F(connCreate_NegativeEncodingType),
-    ?F(connCreate_NegativeNencodingType),
-    ?F(connCreate_NegativeFailCall)
+    ?F(connCreateBadContext),
+    ?F(connCreateBadUsername),
+    ?F(connCreateBadPass),
+    ?F(connCreateBadUsername),
+    ?F(connCreateBadParams),
+    ?F(connCreateBadEncoding),
+    ?F(connCreateBadNencoding),
+    ?F(connCreateFail)
 ]).
 
 -define(AFTER_CONNECTION_TESTS, [
     ?F(connPrepareStmt),
-    ?F(connPrepareStmt_emptyTag),
-    ?F(connPrepareStmt_NegativeConnType),
-    ?F(connPrepareStmt_NegativeScrollableType),
-    ?F(connPrepareStmt_NegativeSQLType),
-    ?F(connPrepareStmt_NegativeTagType),
-    ?F(connPrepareStmt_NegativeFailCall),
+    ?F(connPrepareStmtEmptyTag),
+    ?F(connPrepareStmtBadConn),
+    ?F(connPrepareStmtBadScrollable),
+    ?F(connPrepareStmtBadSQL),
+    ?F(connPrepareStmtBadTag),
+    ?F(connPrepareStmtFail),
     ?F(connNewVar),
-    ?F(connNewVar_NegativeConnType),
-    ?F(connNewVar_NegativeOraTypeType),
-    ?F(connNewVar_NegativeDpiTypeType),
-    ?F(connNewVar_NegativeArraySizeType),
-    ?F(connNewVar_NegativeSizeType),
-    ?F(connNewVar_NegativeSizeIsBytesType),
-    ?F(connNewVar_NegativeIsArrayType),
-    ?F(connNewVar_NegativeObjTypeType),
-    ?F(connNewVar_NegativeFailCall),
+    ?F(connNewVarBadConn),
+    ?F(connNewVarBadOraType),
+    ?F(connNewVarBadDpiType),
+    ?F(connNewVarBadArraySize),
+    ?F(connNewVarBadSize),
+    ?F(connNewVarBadSizeIsBytes),
+    ?F(connNewVarBadArray),
+    ?F(connNewVarBadObjType),
+    ?F(connNewVarFail),
     ?F(connCommit),
-    ?F(connCommit_NegativeConnType),
-    ?F(connCommit_NegativeFailCall),
+    ?F(connCommitBadConn),
+    ?F(connCommitFail),
     ?F(connRollback),
-    ?F(connRollback_NegativeConnType),
-    ?F(connRollback_NegativeFailCall),
+    ?F(connRollbackBadConn),
+    ?F(connRollbackFail),
     ?F(connPing),
-    ?F(connPing_NegativeConnType),
-    ?F(connPing_NegativeFailCall),
+    ?F(connPingBadConn),
+    ?F(connPingFail),
     ?F(connClose),
     ?F(connCloseWithModes),
-    ?F(connClose_NegativeConnType),
-    ?F(connClose_NegativeModesType),
-    ?F(connClose_NegativeModeInsideType),
-    ?F(connClose_NegativeInvalidMode),
-    ?F(connClose_NegativeTagType),
-    ?F(connClose_NegativeFailCall),
+    ?F(connCloseBadConn),
+    ?F(connCloseBadModes),
+    ?F(connCloseBadModesInside),
+    ?F(connCloseInvalidMode),
+    ?F(connCloseBadTag),
+    ?F(connCloseFail),
     ?F(connGetServerVersion),
-    ?F(connGetServerVersion_NegativeConnType),
-    ?F(connGetServerVersion_NegativeFailCall),
+    ?F(connGetServerVersionBadConn),
+    ?F(connGetServerVersionFail),
     ?F(stmtExecute),
     ?F(stmtExecuteWithModes),
-    ?F(stmtExecute_NegativeStmtType),
-    ?F(stmtExecute_NegativeModesType),
-    ?F(stmtExecute_NegativeModeInsideType),
-    ?F(stmtExecute_NegativeFailCall),
+    ?F(stmtExecutebadStmt),
+    ?F(stmtExecuteBadModes),
+    ?F(stmtExecuteBadModesInside),
+    ?F(stmtExecuteFail),
     ?F(stmtFetch),
-    ?F(stmtFetch_NegativeStmtType),
-    ?F(stmtFetch_NegativeFailCall),
+    ?F(stmtFetchBadStmt),
+    ?F(stmtFetchFail),
     ?F(stmtGetQueryValue),
-    ?F(stmtGetQueryValue_NegativeStmtType),
-    ?F(stmtGetQueryValue_NegativePosType),
-    ?F(stmtGetQueryValue_NegativeFailCall),
+    ?F(stmtGetQueryValueBadStmt),
+    ?F(stmtGetQueryValueBadPos),
+    ?F(stmtGetQueryValueFail),
     ?F(stmtGetQueryInfo),
-    ?F(stmtGetQueryInfo_NegativeStmtType),
-    ?F(stmtGetQueryInfo_NegativePosType),
-    ?F(stmtGetQueryInfo_NegativeFailCall),
+    ?F(stmtGetQueryInfoBadStmt),
+    ?F(stmtGetQueryInfoBadPos),
+    ?F(stmtGetQueryInfoFail),
     ?F(stmtGetNumQueryColumns),
-    ?F(stmtGetNumQueryColumns_NegativeStmtType),
-    ?F(stmtGetNumQueryColumns_NegativeFailCall),
+    ?F(stmtGetNumQueryColumnsBadStmt),
+    ?F(stmtGetNumQueryColumnsFail),
     ?F(stmtBindValueByPos),
-    ?F(stmtBindValueByPos_NegativeStmtType),
-    ?F(stmtBindValueByPos_NegativePosType),
-    ?F(stmtBindValueByPos_NegativeTypeType),
-    ?F(stmtBindValueByPos_NegativeDataType),
-    ?F(stmtBindValueByPos_NegativeFailCall),
+    ?F(stmtBindValueByPosBadStmt),
+    ?F(stmtBindValueByPosBadPos),
+    ?F(stmtBindValueByPosBadTpye),
+    ?F(stmtBindValueByPosBadData),
+    ?F(stmtBindValueByPosFail),
     ?F(stmtBindValueByName),
-    ?F(stmtBindValueByName_NegativeStmtType),
-    ?F(stmtBindValueByName_NegativePosType),
-    ?F(stmtBindValueByName_NegativeTypeType),
-    ?F(stmtBindValueByName_NegativeDataType),
-    ?F(stmtBindValueByName_NegativeFailCall),
+    ?F(stmtBindValueByNameBadStmt),
+    ?F(stmtBindValueByNameBadPos),
+    ?F(stmtBindValueByNameBadPosType),
+    ?F(stmtBindValueByNameBadData),
+    ?F(stmtBindValueByNameFail),
     ?F(stmtBindByPos),
-    ?F(stmtBindByPos_NegativeStmtType),
-    ?F(stmtBindByPos_NegativePosType),
-    ?F(stmtBindByPos_NegativeVarType),
-    ?F(stmtBindByPos_NegativeFailCall),
+    ?F(stmtBindByPosBadStmt),
+    ?F(stmtBindByPosBadPos),
+    ?F(stmtBindByPosBadVar),
+    ?F(stmtBindByPosFail),
     ?F(stmtBindByName),
-    ?F(stmtBindByName_NegativeStmtType),
-    ?F(stmtBindByName_NegativePosType),
-    ?F(stmtBindByName_NegativeVarType),
-    ?F(stmtBindByName_NegativeFailCall),
+    ?F(stmtBindByNameBadStmt),
+    ?F(stmtBindByNameBadPos),
+    ?F(stmtBindByNameBadVar),
+    ?F(stmtBindByNameFail),
     ?F(stmtDefine),
-    ?F(stmtDefine_NegativeStmtType),
-    ?F(stmtDefine_NegativePosType),
-    ?F(stmtDefine_NegativeVarType),
-    ?F(stmtDefine_NegativeFailCall),
+    ?F(stmtDefineBadStmt),
+    ?F(stmtDefineBadPos),
+    ?F(stmtDefineBadVar),
+    ?F(stmtDefineFail),
     ?F(stmtDefineValue),
-    ?F(stmtDefineValue_NegativeStmtType),
-    ?F(stmtDefineValue_NegativePosType),
-    ?F(stmtDefineValue_NegativeOraTypeType),
-    ?F(stmtDefineValue_NegativeNativeTypeType),
-    ?F(stmtDefineValue_NegativeSizeType),
-    ?F(stmtDefineValue_NegativeSizeInBytesType),
-    ?F(stmtDefineValue_NegativeFailCall),
+    ?F(stmtDefineValueBadStmt),
+    ?F(stmtDefineValueBadPos),
+    ?F(stmtDefineValueBadOraType),
+    ?F(stmtDefineValueBadNativeType),
+    ?F(stmtDefineValueBadSize),
+    ?F(stmtDefineValueBadSizeInBytes),
+    ?F(stmtDefineValueFail),
     ?F(varSetNumElementsInArray),
-    ?F(varSetNumElementsInArray_NegativeVarType),
-    ?F(varSetNumElementsInArray_NegativeNumElementsType),
-    ?F(varSetNumElementsInArray_NegativeFailCall),
+    ?F(varSetNumElementsInArrayBadVar),
+    ?F(varSetNumElementsInArrayBadNumElements),
+    ?F(varSetNumElementsInArrayFail),
     ?F(varSetFromBytes),
-    ?F(varSetFromBytes_NegativeVarType),
-    ?F(varSetFromBytes_NegativePosType),
-    ?F(varSetFromBytes_NegativeBinaryType),
-    ?F(varSetFromBytes_NegativeFailCall),
+    ?F(varSetFromBytesBadVar),
+    ?F(varSetFromBytesBadPos),
+    ?F(varSetFromBytesBadBinary),
+    ?F(varSetFromBytesFail),
     ?F(varRelease),
-    ?F(varRelease_NegativeVarType),
-    ?F(varRelease_NegativeFailCall),
+    ?F(varReleaseBadVar),
+    ?F(varReleaseFail),
     ?F(queryInfoGet),
-    ?F(queryInfoGet_NegativeQueryInfoType),
-    ?F(queryInfoGet_NegativeFailCall),
+    ?F(queryInfoGetBadQueryInfo),
+    ?F(queryInfoGetFail),
     ?F(queryInfoDelete),
-    ?F(queryInfoDelete_NegativeQueryInfoType),
-    ?F(queryInfoDelete_NegativeFailCall),
+    ?F(queryInfoDeleteBadQueryInfo),
+    ?F(queryInfoDeleteFail),
     ?F(dataSetTimestamp),
-    ?F(dataSetTimestamp_NegativeDataType),
-    ?F(dataSetTimestamp_NegativeYearType),
-    ?F(dataSetTimestamp_NegativeMonthType),
-    ?F(dataSetTimestamp_NegativeDayType),
-    ?F(dataSetTimestamp_NegativeHourType),
-    ?F(dataSetTimestamp_NegativeMinuteType),
-    ?F(dataSetTimestamp_NegativeSecondType),
-    ?F(dataSetTimestamp_NegativeFSecondType),
-    ?F(dataSetTimestamp_NegativeTZHourOffsetType),
-    ?F(dataSetTimestamp_NegativeTZMinuteOffsetType),
-    ?F(dataSetTimestamp_NegativeFailCall),
-    ?F(dataSetTimestamp_viaPointer),
+    ?F(dataSetTimestampBadData),
+    ?F(dataSetTimestampBadYear),
+    ?F(dataSetTimestampBadMonth),
+    ?F(dataSetTimestampBadDay),
+    ?F(dataSetTimestampBadHour),
+    ?F(dataSetTimestampBadMinute),
+    ?F(dataSetTimestampBadSecond),
+    ?F(dataSetTimestampBadFSecond),
+    ?F(dataSetTimestampBadTZHourOffset),
+    ?F(dataSetTimestampBadTZMinuteOffset),
+    ?F(dataSetTimestampFail),
+    ?F(dataSetTimestampViaPointer),
     ?F(dataSetIntervalDS),
-    ?F(dataSetIntervalDS_NegativeDataType),
-    ?F(dataSetIntervalDS_NegativeDayType),
-    ?F(dataSetIntervalDS_NegativeHoursType),
-    ?F(dataSetIntervalDS_NegativeMinutesType),
-    ?F(dataSetIntervalDS_NegativeSecondsType),
-    ?F(dataSetIntervalDS_NegativeFSecondsType),
-    ?F(dataSetIntervalDS_NegativeFailCall),
-    ?F(dataSetIntervalDS_viaPointer),
+    ?F(dataSetIntervalDSBadData),
+    ?F(dataSetIntervalDSBadDays),
+    ?F(dataSetIntervalDSBadHours),
+    ?F(dataSetIntervalDSBadMinutes),
+    ?F(dataSetIntervalDSBadSeconds),
+    ?F(dataSetIntervalDSBadFSeconds),
+    ?F(dataSetIntervalDSFail),
+    ?F(dataSetIntervalDSViaPointer),
     ?F(dataSetIntervalYM),
-    ?F(dataSetIntervalYM_NegativeDataType),
-    ?F(dataSetIntervalYM_NegativeYearType),
-    ?F(dataSetIntervalYM_NegativeMonthType),
-    ?F(dataSetIntervalYM_NegativeFailCall),
-    ?F(dataSetIntervalYM_viaPointer),
+    ?F(dataSetIntervalYMBadData),
+    ?F(dataSetIntervalYMBadYears),
+    ?F(dataSetIntervalYMBadMonths),
+    ?F(dataSetIntervalYMFail),
+    ?F(dataSetIntervalYMViaPointer),
     ?F(dataSetInt64),
-    ?F(dataSetInt64_NegativeDataType),
-    ?F(dataSetInt64_NegativeAmountType),
-    ?F(dataSetInt64_NegativeFailCall),
-    ?F(dataSetInt64_viaPointer),
+    ?F(dataSetInt64BadData),
+    ?F(dataSetInt64BadAmount),
+    ?F(dataSetInt64Fail),
+    ?F(dataSetInt64ViaPointer),
     ?F(dataSetBytes),
-    ?F(dataSetBytes_NegativeDataType),
-    ?F(dataSetBytes_NegativeBinaryType),
-    ?F(dataSetBytes_NegativeFailCall),
+    ?F(dataSetBytesBadData),
+    ?F(dataSetBytesBadBinary),
+    ?F(dataSetBytesFail),
     ?F(dataSetIsNullTrue),
     ?F(dataSetIsNullFalse),
-    ?F(dataSetIsNull_NegativeDataType),
-    ?F(dataSetIsNull_NegativeIsNullType),
-    ?F(dataSetIsNull_NegativeFailCall),
-    ?F(dataSetIsNull_viaPointer),
+    ?F(dataSetIsNullBadData),
+    ?F(dataSetIsNullBadIsNull),
+    ?F(dataSetIsNullFail),
+    ?F(dataSetIsNullViaPointer),
     ?F(dataGetNull),
     ?F(dataGetTInt64),
     ?F(dataGetUint64),
@@ -1974,19 +1973,19 @@ cleanup(_) -> ok.
     ?F(dataGetIntervalYM),
     ?F(dataGetStmt),
     ?F(dataGetStmtChange),
-    ?F(dataGet_NegativeDataType),
-    ?F(dataGet_NegativeFailCall),
+    ?F(dataGetBadData),
+    ?F(dataGetFail),
     ?F(dataGetInt64),
-    ?F(dataGetInt64_NegativeDataType),
-    ?F(dataGetInt64_NegativeFailCall),
-    ?F(dataGetInt64_viaPointer),
+    ?F(dataGetInt64BadData),
+    ?F(dataGetInt64Fail),
+    ?F(dataGetInt64ViaPointer),
     ?F(dataGetBytes),
-    ?F(dataGetBytes_NegativeDataType),
-    ?F(dataGetBytes_NegativeFailCall),
+    ?F(dataGetBytesBadData),
+    ?F(dataGetBytesFail),
     ?F(dataRelease),
-    ?F(dataRelease_NegativeDataType),
-    ?F(dataRelease_NegativeFailCall),
-    ?F(dataRelease_viaPointer)
+    ?F(dataReleaseBadData),
+    ?F(dataReleaseFail),
+    ?F(dataReleaseViaPointer)
 ]).
 
 
@@ -1994,17 +1993,8 @@ cleanup(_) -> ok.
     {"aaaaaaah", fun contextCreate/1}
 ]).
 
-testDescriptorMatch(TestFuns) ->
-    fun
-        ({Safe, SlaveNode}) ->
-            [{
-                "slave_"++Title,
-                fun() ->
-                    put(dpi_node, SlaveNode),
-                    TestFun(Safe)
-                end
-            } || {Title, TestFun} <- TestFuns];
-        (Ctx) ->
+tr(TestFuns) ->
+    fun(Ctx) ->
             [{Title, fun() -> TestFun(Ctx) end} || {Title, TestFun} <- TestFuns]
     end.
 
@@ -2013,7 +2003,7 @@ unsafe_no_context_test_() ->
         setup,
         fun() -> setup(#{safe => false}) end,
         fun cleanup/1,
-        testDescriptorMatch(?NO_CONTEXT_TESTS)
+        tr(?NO_CONTEXT_TESTS)
     }.
 
 unsafe_context_test_() ->
@@ -2021,7 +2011,7 @@ unsafe_context_test_() ->
         setup,
         fun() -> setup_context(#{safe => false}) end,
         fun cleanup/1,
-        testDescriptorMatch(?AFTER_CONTEXT_TESTS)
+        tr(?AFTER_CONTEXT_TESTS)
     }.
 
 unsafe_session_test_() ->
@@ -2029,7 +2019,7 @@ unsafe_session_test_() ->
         setup,
         fun() -> setup_connecion(#{safe => false}) end,
         fun cleanup/1,
-        testDescriptorMatch(?AFTER_CONNECTION_TESTS)
+        tr(?AFTER_CONNECTION_TESTS)
     }.
 
 
@@ -2038,7 +2028,7 @@ no_context_test_() ->
         setup,
         fun() -> setup(#{safe => true}) end,
         fun cleanup/1,
-        testDescriptorMatch(?NO_CONTEXT_TESTS)
+        tr(?NO_CONTEXT_TESTS)
     }.
 
 context_test_() ->
@@ -2046,7 +2036,7 @@ context_test_() ->
         setup,
         fun() -> setup_context(#{safe => true}) end,
         fun cleanup/1,
-        testDescriptorMatch(?AFTER_CONTEXT_TESTS)
+        tr(?AFTER_CONTEXT_TESTS)
     }.
 
 session_test_() ->
@@ -2054,7 +2044,7 @@ session_test_() ->
         setup,
         fun() -> setup_connecion(#{safe => true}) end,
         fun cleanup/1,
-        testDescriptorMatch(?AFTER_CONNECTION_TESTS)
+        tr(?AFTER_CONNECTION_TESTS)
     }.
 
 %-------------------------------------------------------------------------------
