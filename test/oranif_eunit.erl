@@ -6,15 +6,17 @@
 
 -define(EXEC_STMT(_Conn, _Sql),
     (fun() ->
-        __Stmt = dpiCall(TestCtx, conn_prepareStmt, [_Conn, false, _Sql, <<"">>]),
-        R = (catch dpiCall(TestCtx, stmt_execute, [__Stmt, []])),
+        __Stmt = dpiCall(
+            TestCtx, conn_prepareStmt, [_Conn, false, _Sql, <<"">>]
+        ),
+        __StmtExecResult = (catch dpiCall(TestCtx, stmt_execute, [__Stmt, []])),
         catch dpiCall(TestCtx, stmt_close, [__Stmt, <<>>]),
-        R
+        __StmtExecResult
     end)()
 ).
 
 %-------------------------------------------------------------------------------
-% Context tests
+% Context APIs
 %-------------------------------------------------------------------------------
 
 contextCreate(TestCtx) ->
@@ -74,7 +76,9 @@ contextGetClientVersion(TestCtx) ->
     ?assert(is_integer(CFNum)).
 
 contextGetClientVersionBadContext(TestCtx) -> 
-    Context = dpiCall(TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]),
+    Context = dpiCall(
+        TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
+    ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, context_getClientVersion, [foobar])),
     dpiCall(TestCtx, context_destroy, [Context]).
@@ -85,9 +89,10 @@ contextGetClientVersionFail(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, context_getClientVersion, [foobar])),
     dpiCall(TestCtx, data_release, [BindData]).
-%%
-%% CONN APIS
-%%
+
+%-------------------------------------------------------------------------------
+% Connection APIs
+%-------------------------------------------------------------------------------
 
 connCreate(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
@@ -144,7 +149,7 @@ connCreateBadNencoding(#{context := Context} = TestCtx) ->
         dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
             #{encoding => "AL32UTF8", nencoding => foobar}, #{}])).
 
-%% fails due to invalid user/pass combination
+% fails due to invalid user/pass combination
 connCreateFail(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -152,7 +157,9 @@ connCreateFail(#{context := Context} = TestCtx) ->
             #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}])).
 
 connPrepareStmt(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"miau">>, <<"foo">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, [Conn, false, <<"miau">>, <<"foo">>]
+    ),
     ?assert(is_reference(Stmt)),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
@@ -176,7 +183,7 @@ connPrepareStmtBadTag(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"miau">>, foobar])).
 
-%% fails due to both SQL and Tag being empty
+% fails due to both SQL and Tag being empty
 connPrepareStmtFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"">>, <<"">>])).
@@ -223,7 +230,7 @@ connNewVarBadObjType(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, "foobar"])).
 
-%% fails due to array size being 0
+% fails due to array size being 0
 connNewVarFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 0, 0, false, false, null])).
@@ -236,7 +243,7 @@ connCommitBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_commit, [foobar])).
 
-%% fails due to the reference being wrong
+% fails due to the reference being wrong
 connCommitFail(#{context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_commit, [Context])).
@@ -249,7 +256,7 @@ connRollbackBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_rollback, [foobar])).
 
-%% fails due to the reference being wrong
+% fails due to the reference being wrong
 connRollbackFail(#{context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_rollback, [Context])).
@@ -262,7 +269,7 @@ connPingBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_ping, [foobar])).
 
-%% fails due to the reference being wrong
+% fails due to the reference being wrong
 connPingFail(#{context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_ping, [Context])).
@@ -278,7 +285,7 @@ connCloseWithModes(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     Conn = dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
         #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
-    Result = dpiCall(TestCtx, conn_close, [Conn, ['DPI_MODE_CONN_CLOSE_DEFAULT'], <<"">>]), %% the other two don't work without a session pool
+    Result = dpiCall(TestCtx, conn_close, [Conn, ['DPI_MODE_CONN_CLOSE_DEFAULT'], <<"">>]), % the other two don't work without a session pool
     ?assertEqual(ok, Result).
   
 connCloseBadConn(#{session := Conn} = TestCtx) ->
@@ -301,7 +308,7 @@ connCloseBadTag(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_close, [Conn, [], foobar])).
 
-%% fails due to the reference being wrong
+% fails due to the reference being wrong
 connCloseFail(#{context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_close, [Context, [], <<"">>])).
@@ -323,7 +330,8 @@ connGetServerVersionBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_getServerVersion, [foobar])).
 
-%% fails due to the reference being completely wrong (apparently passing a released connection isn't bad enough)
+% fails due to the reference being completely wrong (apparently passing a
+% released connection isn't bad enough)
 connGetServerVersionFail(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     Conn = dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
@@ -332,10 +340,9 @@ connGetServerVersionFail(#{context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_getServerVersion, [Context])).
 
-
-%%%
-%%% STMT APIS
-%%%
+%-------------------------------------------------------------------------------
+% Statement APIs
+%-------------------------------------------------------------------------------
 
 stmtExecute(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
@@ -365,7 +372,7 @@ stmtExecuteBadModesInside(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_execute, [Stmt, ["not an atom"]])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-%% fails due to the SQL being invalid
+% fails due to the SQL being invalid
 stmtExecuteFail(#{session := Conn, context := Context} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"all your base are belong to us">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -384,7 +391,7 @@ stmtFetchBadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_fetch, [foobar])).
 
-%% fails due to the reference being of the wrong type
+% fails due to the reference being of the wrong type
 stmtFetchFail(#{session := Conn, context := Context} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi (a) values (1337)">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -411,7 +418,7 @@ stmtGetQueryValueBadPos(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_getQueryValue, [Stmt, foobar])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-%% fails due to the fetch not being done
+% fails due to the fetch not being done
 stmtGetQueryValueFail(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1337 from dual">>, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
@@ -437,7 +444,7 @@ stmtGetQueryInfoBadPos(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, foobar])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-%% fails due to the SQL being bad
+% fails due to the SQL being bad
 stmtGetQueryInfoFail(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"bibidi babidi boo">>, <<"">>]),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -455,7 +462,7 @@ stmtGetNumQueryColumnsBadStmt(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_getNumQueryColumns, [foobar])).
 
 
-%% fails due to the statement being released too early
+% fails due to the statement being released too early
 stmtGetNumQueryColumnsFail(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"it is showtime">>, <<"">>]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
@@ -500,7 +507,7 @@ stmtBindValueByPosBadData(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_bindValueByPos, [Stmt, 1, 'DPI_NATIVE_TYPE_INT64', foobar])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-%% fails due to the position being invalid
+% fails due to the position being invalid
 stmtBindValueByPosFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
@@ -511,7 +518,6 @@ stmtBindValueByPosFail(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, data_release, [BindData]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
-
 
 stmtBindValueByName(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
@@ -551,7 +557,7 @@ stmtBindValueByNameBadData(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_bindValueByName, [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', foobar])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-%% fails due to bad data handle passing
+% fails due to bad data handle passing
 stmtBindValueByNameFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
@@ -608,7 +614,7 @@ stmtBindByPosBadVar(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
 
-%% fails due to the position being invalid
+% fails due to the position being invalid
 stmtBindByPosFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
@@ -667,7 +673,7 @@ stmtBindByNameBadVar(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
 
-%% fails due to the position being invalid
+% fails due to the position being invalid
 stmtBindByNameFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
@@ -717,7 +723,7 @@ stmtDefineBadVar(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_define, [Stmt, 1, foobar])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-%% fails due to the pos being invalid
+% fails due to the pos being invalid
 stmtDefineFail(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     #{var := Var, data := Data} =
@@ -778,7 +784,7 @@ stmtDefineValueBadSizeInBytes(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_defineValue, [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0, "foobar", null])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-%% fails due to invalid position
+% fails due to invalid position
 stmtDefineValueFail(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
@@ -786,9 +792,10 @@ stmtDefineValueFail(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_defineValue, [Stmt, -1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0, false, null])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-%%%
-%%% Var APIS
-%%%
+
+%-------------------------------------------------------------------------------
+% Variable APIs
+%-------------------------------------------------------------------------------
 
 varSetNumElementsInArray(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
@@ -817,7 +824,7 @@ varSetNumElementsInArrayBadNumElements(#{session := Conn} = TestCtx) ->
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]).
 
-%% fails due to invalid array size
+% fails due to invalid array size
 varSetNumElementsInArrayFail(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, [
@@ -873,7 +880,7 @@ varSetFromBytesBadBinary(#{session := Conn} = TestCtx) ->
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]).
 
-%% fails due to position being invalid
+% fails due to position being invalid
 varSetFromBytesFail(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, [
@@ -901,14 +908,14 @@ varReleaseBadVar(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, var_release, [foobar])).
 
-%% fails due to the reference being wrong
+% fails due to the reference being wrong
 varReleaseFail(#{session := Conn, context := Context} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, var_release, [Context])).
 
-%%%
-%%% QuryInfo APIS
-%%%
+%-------------------------------------------------------------------------------
+% QueryInfo APIs
+%-------------------------------------------------------------------------------
 
 queryInfoGet(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
@@ -941,7 +948,7 @@ queryInfoGetBadQueryInfo(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, queryInfo_get, [foobar])).
 
-%% fails due to getting a completely wrong reference
+% fails due to getting a completely wrong reference
 queryInfoGetFail(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
     QueryInfoRef = dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1]),
@@ -959,14 +966,14 @@ queryInfoDeleteBadQueryInfo(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, queryInfo_delete, [foobar])).
 
-%% fails due to getting a completely wrong reference
+% fails due to getting a completely wrong reference
 queryInfoDeleteFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, queryInfo_delete, [Conn])).
 
-%%%
-%%% Data APIS
-%%%
+%-------------------------------------------------------------------------------
+% Data APIs
+%-------------------------------------------------------------------------------
 
 dataSetTimestamp(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
@@ -1032,8 +1039,8 @@ dataSetTimestampBadTZMinuteOffset(TestCtx) ->
         dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, 8, foobar])),
     dpiCall(TestCtx, data_release, [Data]).
 
-%% fails due to the Data ref passed being completely wrong
-%% (it doesn't seem to mind the nonsense parameters. Year -1234567? Sure. Timezone of -22398 hours and 3239 minutes? No problem)
+% fails due to the Data ref passed being completely wrong
+% (it doesn't seem to mind the nonsense parameters. Year -1234567? Sure. Timezone of -22398 hours and 3239 minutes? No problem)
 dataSetTimestampFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -1092,7 +1099,7 @@ dataSetIntervalDSBadFSeconds(TestCtx) ->
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, 4, foobar])),
     dpiCall(TestCtx, data_release, [Data]).
 
-%% fails due to the Data ref passed being completely wrong
+% fails due to the Data ref passed being completely wrong
 dataSetIntervalDSFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -1134,7 +1141,7 @@ dataSetIntervalYMBadMonths(TestCtx) ->
         dpiCall(TestCtx, data_setIntervalYM, [Data, 1, foobar])),
     dpiCall(TestCtx, data_release, [Data]).
 
-%% fails due to the Data ref passed being completely wrong
+% fails due to the Data ref passed being completely wrong
 dataSetIntervalYMFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -1170,7 +1177,7 @@ dataSetInt64BadAmount(TestCtx) ->
         dpiCall(TestCtx, data_setInt64, [Data, foobar])),
     dpiCall(TestCtx, data_release, [Data]).
 
-%% fails due to the Data ref passed being completely wrong
+% fails due to the Data ref passed being completely wrong
 dataSetInt64Fail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -1205,7 +1212,7 @@ dataSetBytesBadBinary(TestCtx) ->
         dpiCall(TestCtx, data_setBytes, [Data, foobar])),
     dpiCall(TestCtx, data_release, [Data]).
 
-%% fails due to the Data ref passed being completely wrong
+% fails due to the Data ref passed being completely wrong
 dataSetBytesFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -1234,7 +1241,7 @@ dataSetIsNullBadIsNull(TestCtx) ->
         dpiCall(TestCtx, data_setIsNull, [Data, "not an atom"])),
     dpiCall(TestCtx, data_release, [Data]).
 
-%% fails due to the Data ref passed being completely wrong
+% fails due to the Data ref passed being completely wrong
 dataSetIsNullFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -1409,8 +1416,10 @@ dataGetStmt(#{session := Conn} = TestCtx) ->
     ok = dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"cursor">>, VarStmt]),
 
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?assert(is_reference( dpiCall(TestCtx, data_get, [DataStmt]))), %% first-time get
-    ?assert(is_reference( dpiCall(TestCtx, data_get, [DataStmt]))), %% cached re-get
+    % first-time get
+    ?assert(is_reference(dpiCall(TestCtx, data_get, [DataStmt]))),
+    % cached re-get
+    ?assert(is_reference(dpiCall(TestCtx, data_get, [DataStmt]))),
     dpiCall(TestCtx, data_release, [DataStmt]),
     dpiCall(TestCtx, var_release, [VarStmt]).
 
@@ -1450,14 +1459,18 @@ dataGetStmtChange(#{session := Conn} = TestCtx) ->
     ]),
     ok = dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"cursor">>, VarStmt]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?assert(is_reference( dpiCall(TestCtx, data_get, [DataStmt]))), %% first-time get
+
+    % first-time get
+    ?assert(is_reference(dpiCall(TestCtx, data_get, [DataStmt]))),
 
     Stmt2 = dpiCall(TestCtx, conn_prepareStmt, [
         Conn, false, <<"begin ORANIF_TEST_2(:cursor); end;">>, <<"">>
     ]),
     ok = dpiCall(TestCtx, stmt_bindByName, [Stmt2, <<"cursor">>, VarStmt]),
     dpiCall(TestCtx, stmt_execute, [Stmt2, []]),
-    ?assert(is_reference( dpiCall(TestCtx, data_get, [DataStmt]))), %% "ref cursor changed"
+
+    % "ref cursor changed"
+    ?assert(is_reference(dpiCall(TestCtx, data_get, [DataStmt]))),
     dpiCall(TestCtx, data_release, [DataStmt]),
     dpiCall(TestCtx, var_release, [VarStmt]),
 
@@ -1468,7 +1481,7 @@ dataGetBadData(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_get, [foobar])).
 
-%% fails due to completely wrong reference
+% fails due to completely wrong reference
 dataGetFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_get, [Conn])).
@@ -1484,7 +1497,7 @@ dataGetInt64BadData(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_getInt64, [foobar]))).
 
-%% fails due to completely wrong reference
+% fails due to completely wrong reference
 dataGetInt64Fail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_getInt64, [Conn]))).
@@ -1501,7 +1514,7 @@ dataGetInt64ViaPointer(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     dpiCall(TestCtx, var_release, [Var]).
 
-%% no non-pointer test for this one
+% no non-pointer test for this one
 dataGetBytes(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
@@ -1518,7 +1531,7 @@ dataGetBytesBadData(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_getBytes, [foobar]))).
 
-%% fails due to completely wrong reference
+% fails due to completely wrong reference
 dataGetBytesFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_getBytes, [Conn]))).
@@ -1532,7 +1545,7 @@ dataReleaseBadData(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_release, [foobar]))).
 
-%% fails due to completely wrong reference
+% fails due to completely wrong reference
 dataReleaseFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
         (dpiCall(TestCtx, data_release, [Conn]))).
@@ -1592,7 +1605,8 @@ cleanup(#{safe := true, node := SlaveNode} = Ctx) ->
     ok;
 cleanup(_) -> ok.
 
--define(F(__Fn), {??__Fn, fun __Fn/1}).
+-define(W(_Tests), fun(__Ctx) -> _Tests end).
+-define(F(__Fn), {??__Fn, fun() -> __Fn(__Ctx) end}).
 
 -define(NO_CONTEXT_TESTS, [
     ?F(contextCreate),
@@ -1799,22 +1813,12 @@ cleanup(_) -> ok.
     ?F(dataReleaseViaPointer)
 ]).
 
-
--define(FUBAR_TESTS, [
-    {"aaaaaaah", fun contextCreate/1}
-]).
-
-tr(TestFuns) ->
-    fun(Ctx) ->
-            [{Title, fun() -> TestFun(Ctx) end} || {Title, TestFun} <- TestFuns]
-    end.
-
 unsafe_no_context_test_() ->
     {
         setup,
         fun() -> setup(#{safe => false}) end,
         fun cleanup/1,
-        tr(?NO_CONTEXT_TESTS)
+        ?W(?NO_CONTEXT_TESTS)
     }.
 
 unsafe_context_test_() ->
@@ -1822,7 +1826,7 @@ unsafe_context_test_() ->
         setup,
         fun() -> setup_context(#{safe => false}) end,
         fun cleanup/1,
-        tr(?AFTER_CONTEXT_TESTS)
+        ?W(?AFTER_CONTEXT_TESTS)
     }.
 
 unsafe_session_test_() ->
@@ -1830,16 +1834,15 @@ unsafe_session_test_() ->
         setup,
         fun() -> setup_connecion(#{safe => false}) end,
         fun cleanup/1,
-        tr(?AFTER_CONNECTION_TESTS)
+        ?W(?AFTER_CONNECTION_TESTS)
     }.
-
 
 no_context_test_() ->
     {
         setup,
         fun() -> setup(#{safe => true}) end,
         fun cleanup/1,
-        tr(?NO_CONTEXT_TESTS)
+        ?W(?NO_CONTEXT_TESTS)
     }.
 
 context_test_() ->
@@ -1847,7 +1850,7 @@ context_test_() ->
         setup,
         fun() -> setup_context(#{safe => true}) end,
         fun cleanup/1,
-        tr(?AFTER_CONTEXT_TESTS)
+        ?W(?AFTER_CONTEXT_TESTS)
     }.
 
 session_test_() ->
@@ -1855,7 +1858,7 @@ session_test_() ->
         setup,
         fun() -> setup_connecion(#{safe => true}) end,
         fun cleanup/1,
-        tr(?AFTER_CONNECTION_TESTS)
+        ?W(?AFTER_CONNECTION_TESTS)
     }.
 
 %-------------------------------------------------------------------------------
@@ -1898,8 +1901,8 @@ get_column_values(TestCtx, Stmt, ColIdx, Limit) ->
     [dpiCall(TestCtx, data_get, [Data])
      | get_column_values(TestCtx, Stmt, ColIdx + 1, Limit)].
 
-%% gets a value out of a fetched set, compares it using an assertation,
-%% then cleans is up again
+% gets a value out of a fetched set, compares it using an assertation,
+% then cleans is up again
 assert_getQueryValue(TestCtx, Stmt, Index, Value) ->
     #{data := QueryValueRef} = dpiCall(TestCtx, stmt_getQueryValue, [Stmt, Index]),
     ?assertEqual(Value, dpiCall(TestCtx, data_get, [QueryValueRef])),
