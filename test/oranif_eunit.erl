@@ -164,12 +164,17 @@ connPrepareStmt(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 connPrepareStmtEmptyTag(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"miau">>, <<"">>]),
+    Stmt =
+        dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"miau">>, <<"">>]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 connPrepareStmtBadConn(TestCtx) ->
-    ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, conn_prepareStmt, [foobar, false, <<"miau">>, <<"">>])).
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
+        dpiCall(
+            TestCtx, conn_prepareStmt, [foobar, false, <<"miau">>, <<"">>]
+        )
+    ).
 
 connPrepareStmtBadScrollable(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
@@ -189,8 +194,11 @@ connPrepareStmtFail(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"">>, <<"">>])).
 
 connNewVar(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := Data} = 
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null]),
+    #{var := Var, data := Data} = dpiCall(
+        TestCtx, conn_newVar, 
+        [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+            100, 0, false, false, null]
+    ),
     ?assert(is_reference(Var)),
     ?assert(is_list(Data)),
     [FirstData | _] = Data,
@@ -200,40 +208,85 @@ connNewVar(#{session := Conn} = TestCtx) ->
 
 connNewVarBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, conn_newVar, [foobar, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null])).
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [foobar, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 
+                100, 0, false, false, null]
+        )
+    ).
 
 connNewVarBadOraType(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, conn_newVar, [Conn, "foobar", 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null])).
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, "foobar", 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false,
+                null]
+        )
+    ).
 
 connNewVarBadDpiType(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', "foobar", 100, 0, false, false, null])).
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', "foobar", 100, 0, false,
+                false, null]
+        )
+    ).
 
 connNewVarBadArraySize(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', foobar, 0, false, false, null])).
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                foobar, 0, false, false, null]
+        )
+    ).
 
 connNewVarBadSize(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, foobar, false, false, null])).
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 
+                100, foobar, false, false, null]
+        )
+    ).
 
 connNewVarBadSizeIsBytes(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, "foobar", false, null])).
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, "foobar", false, null]
+        )
+    ).
 
 connNewVarBadArray(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, "foobar", null])).
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, false, "foobar", null]
+        )
+    ).
 
 connNewVarBadObjType(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, "foobar"])).
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, false, false, "foobar"]
+        )
+    ).
 
 % fails due to array size being 0
 connNewVarFail(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 0, 0, false, false, null])).
+        dpiCall(
+            TestCtx, conn_newVar,
+                [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE',
+                'DPI_NATIVE_TYPE_DOUBLE', 0, 0, false, false, null]
+        )
+    ).
 
 connCommit(#{session := Conn} = TestCtx) ->
     Result = dpiCall(TestCtx, conn_commit, [Conn]),
@@ -283,9 +336,14 @@ connClose(#{context := Context} = TestCtx) ->
 
 connCloseWithModes(#{context := Context} = TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
-    Conn = dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
-        #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
-    Result = dpiCall(TestCtx, conn_close, [Conn, ['DPI_MODE_CONN_CLOSE_DEFAULT'], <<"">>]), % the other two don't work without a session pool
+    Conn = dpiCall(
+        TestCtx, conn_create, [Context, User, Password, Tns,
+        #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]
+    ),
+    % the other two don't work without a session pool
+    Result = dpiCall(
+        TestCtx, conn_close, [Conn, ['DPI_MODE_CONN_CLOSE_DEFAULT'], <<"">>]
+    ),
     ?assertEqual(ok, Result).
   
 connCloseBadConn(#{session := Conn} = TestCtx) ->
@@ -315,9 +373,9 @@ connCloseFail(#{context := Context} = TestCtx) ->
 
 connGetServerVersion(#{session := Conn} = TestCtx) ->
     #{
-        releaseNum := ReleaseNum, versionNum := VersionNum, fullVersionNum := FullVersionNum,
-        portReleaseNum := PortReleaseNum, portUpdateNum := PortUpdateNum,
-        releaseString := ReleaseString
+        releaseNum := ReleaseNum, versionNum := VersionNum,
+        fullVersionNum := FullVersionNum, portReleaseNum := PortReleaseNum,
+        portUpdateNum := PortUpdateNum, releaseString := ReleaseString
     } = dpiCall(TestCtx, conn_getServerVersion, [Conn]),
     ?assert(is_integer(ReleaseNum)),
     ?assert(is_integer(VersionNum)),
@@ -345,14 +403,22 @@ connGetServerVersionFail(#{context := Context} = TestCtx) ->
 %-------------------------------------------------------------------------------
 
 stmtExecute(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     QueryCols = dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertEqual(1, QueryCols),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtExecuteWithModes(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
-    QueryCols = dpiCall(TestCtx, stmt_execute, [Stmt, ['DPI_MODE_EXEC_DEFAULT']]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
+    QueryCols = dpiCall(
+        TestCtx, stmt_execute, [Stmt, ['DPI_MODE_EXEC_DEFAULT']]
+    ),
     ?assertEqual(1, QueryCols),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
@@ -361,20 +427,29 @@ stmtExecutebadStmt(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_execute, [foobar, []])).
 
 stmtExecuteBadModes(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_execute, [Stmt, foobar])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtExecuteBadModesInside(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_execute, [Stmt, ["not an atom"]])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 % fails due to the SQL being invalid
 stmtExecuteFail(#{session := Conn, context := Context} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"all your base are belong to us">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"all your base are belong to us">>, <<"">>]
+    ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_execute, [Stmt, []])).
 
@@ -382,7 +457,8 @@ stmtFetch(#{session := Conn} = TestCtx) ->
     SQL = <<"select 1337 from dual">>,
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, SQL, <<"">>]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    #{found := Found, bufferRowIndex := BufferRowIndex} = dpiCall(TestCtx, stmt_fetch, [Stmt]),
+    #{found := Found, bufferRowIndex := BufferRowIndex} =
+        dpiCall(TestCtx, stmt_fetch, [Stmt]),
     ?assert(is_atom(Found)),
     ?assert(is_integer(BufferRowIndex)),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
@@ -393,12 +469,18 @@ stmtFetchBadStmt(#{session := Conn} = TestCtx) ->
 
 % fails due to the reference being of the wrong type
 stmtFetchFail(#{session := Conn, context := Context} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi (a) values (1337)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"insert into test_dpi (a) values (1337)">>, <<"">>]
+    ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_fetch, [Conn])).
 
 stmtGetQueryValue(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1337 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1337 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     dpiCall(TestCtx, stmt_fetch, [Stmt]),
     #{nativeTypeNum := Type, data := Result} =
@@ -413,21 +495,30 @@ stmtGetQueryValueBadStmt(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_getQueryValue, [foobar, 1])).
 
 stmtGetQueryValueBadPos(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1337 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1337 from dual">>, <<"">>]
+    ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_getQueryValue, [Stmt, foobar])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 % fails due to the fetch not being done
 stmtGetQueryValueFail(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1337 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1337 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_getQueryValue, [Stmt, 1])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtGetQueryInfo(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1337 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1337 from dual">>, <<"">>]
+    ),
     Info = dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1]),
     ?assert(is_reference(Info)),
     dpiCall(TestCtx, queryInfo_delete, [Info]),
@@ -438,7 +529,10 @@ stmtGetQueryInfoBadStmt(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_getQueryInfo, [foobar, 1])).
 
 stmtGetQueryInfoBadPos(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1337 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1337 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, foobar])),
@@ -446,35 +540,54 @@ stmtGetQueryInfoBadPos(#{session := Conn} = TestCtx) ->
 
 % fails due to the SQL being bad
 stmtGetQueryInfoFail(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"bibidi babidi boo">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"bibidi babidi boo">>, <<"">>]
+    ),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1])),
+        dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1])
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtGetNumQueryColumns(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1337 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1337 from dual">>, <<"">>]
+    ),
     Count = dpiCall(TestCtx, stmt_getNumQueryColumns, [Stmt]),
     ?assert(is_integer(Count)),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtGetNumQueryColumnsBadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_getNumQueryColumns, [foobar])).
+        dpiCall(TestCtx, stmt_getNumQueryColumns, [foobar])
+    ).
 
 
 % fails due to the statement being released too early
 stmtGetNumQueryColumnsFail(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"it is showtime">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, [Conn, false, <<"it is showtime">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_getNumQueryColumns, [Stmt])).
+        dpiCall(TestCtx, stmt_getNumQueryColumns, [Stmt])
+    ).
 
 stmtBindValueByPos(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     BindData = dpiCall(TestCtx, data_ctor, []),
-    ?assertEqual(ok, dpiCall(TestCtx, stmt_bindValueByPos, [Stmt, 1, 'DPI_NATIVE_TYPE_INT64', BindData])),
+    ?assertEqual(ok,
+        dpiCall(
+            TestCtx, stmt_bindValueByPos, 
+            [Stmt, 1, 'DPI_NATIVE_TYPE_INT64', BindData]
+        )
+    ),
     dpiCall(TestCtx, data_release, [BindData]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
@@ -482,19 +595,33 @@ stmtBindValueByPos(#{session := Conn} = TestCtx) ->
 stmtBindValueByPosBadStmt(#{session := Conn} = TestCtx) -> 
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-    dpiCall(TestCtx, stmt_bindValueByPos, [foobar, 1, 'DPI_NATIVE_TYPE_INT64', BindData])),
+        dpiCall(
+            TestCtx, stmt_bindValueByPos,
+            [foobar, 1, 'DPI_NATIVE_TYPE_INT64', BindData]
+        )
+    ),
     dpiCall(TestCtx, data_release, [BindData]).
 
 stmtBindValueByPosBadPos(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_bindValueByPos, [Stmt, foobar, 'DPI_NATIVE_TYPE_INT64', BindData])),
+        dpiCall(
+            TestCtx, stmt_bindValueByPos,
+            [Stmt, foobar, 'DPI_NATIVE_TYPE_INT64', BindData]
+        )
+    ),
     dpiCall(TestCtx, data_release, [BindData]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtBindValueByPosBadTpye(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_bindValueByPos, [Stmt, 1, "foobar", BindData])),
@@ -502,19 +629,33 @@ stmtBindValueByPosBadTpye(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtBindValueByPosBadData(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_bindValueByPos, [Stmt, 1, 'DPI_NATIVE_TYPE_INT64', foobar])),
+        dpiCall(
+            TestCtx, stmt_bindValueByPos, 
+            [Stmt, 1, 'DPI_NATIVE_TYPE_INT64', foobar]
+        )
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 % fails due to the position being invalid
 stmtBindValueByPosFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_bindValueByPos, [Stmt, -1, 'DPI_NATIVE_TYPE_INT64', BindData])),
+        dpiCall(
+            TestCtx, stmt_bindValueByPos, 
+            [Stmt, -1, 'DPI_NATIVE_TYPE_INT64', BindData]
+        )
+    ),
     dpiCall(TestCtx, data_release, [BindData]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
@@ -522,9 +663,17 @@ stmtBindValueByPosFail(#{session := Conn} = TestCtx) ->
 stmtBindValueByName(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     BindData = dpiCall(TestCtx, data_ctor, []),
-    ?assertEqual(ok, dpiCall(TestCtx, stmt_bindValueByName, [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', BindData])),
+    ?assertEqual(ok, 
+        dpiCall(
+            TestCtx, stmt_bindValueByName, 
+            [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', BindData]
+        )
+    ),
     dpiCall(TestCtx, data_release, [BindData]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
@@ -532,39 +681,69 @@ stmtBindValueByName(#{session := Conn} = TestCtx) ->
 stmtBindValueByNameBadStmt(#{session := Conn} = TestCtx) -> 
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-    dpiCall(TestCtx, stmt_bindValueByName, [foobar, <<"A">>, 'DPI_NATIVE_TYPE_INT64', BindData])),
+        dpiCall(
+            TestCtx, stmt_bindValueByName, 
+            [foobar, <<"A">>, 'DPI_NATIVE_TYPE_INT64', BindData]
+        )
+    ),
     dpiCall(TestCtx, data_release, [BindData]).
 
 stmtBindValueByNameBadPos(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_bindValueByName, [Stmt, foobar, 'DPI_NATIVE_TYPE_INT64', BindData])),
+        dpiCall(
+            TestCtx, stmt_bindValueByName,
+            [Stmt, foobar, 'DPI_NATIVE_TYPE_INT64', BindData]
+        )
+    ),
     dpiCall(TestCtx, data_release, [BindData]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtBindValueByNameBadPosType(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_bindValueByName, [Stmt, <<"A">>, "foobar", BindData])),
+        dpiCall(
+            TestCtx, stmt_bindValueByName, [Stmt, <<"A">>, "foobar", BindData])
+        ),
     dpiCall(TestCtx, data_release, [BindData]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtBindValueByNameBadData(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_bindValueByName, [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', foobar])),
+        dpiCall(
+            TestCtx, stmt_bindValueByName, 
+            [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', foobar]
+        )
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 % fails due to bad data handle passing
 stmtBindValueByNameFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_bindValueByName, [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', Stmt])),
+        dpiCall(
+            TestCtx, stmt_bindValueByName, 
+            [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', Stmt]
+        )
+    ),
     dpiCall(TestCtx, data_release, [BindData]),
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
@@ -572,9 +751,16 @@ stmtBindValueByNameFail(#{session := Conn} = TestCtx) ->
 stmtBindByPos(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     #{var := Var, data := Data} = 
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
+                100, 0, false, false, null]
+        ),
     ?assertEqual(ok, dpiCall(TestCtx, stmt_bindByPos, [Stmt, 1, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]),
@@ -585,7 +771,11 @@ stmtBindByPosBadStmt(#{session := Conn} = TestCtx) ->
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     #{var := Var, data := Data} = 
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
+                0, false, false, null]
+        ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_bindByPos, [foobar, 1, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
@@ -595,9 +785,16 @@ stmtBindByPosBadStmt(#{session := Conn} = TestCtx) ->
 stmtBindByPosBadPos(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     #{var := Var, data := Data} = 
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
+            100, 0, false, false, null]
+        ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_bindByPos, [Stmt, foobar, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
@@ -608,7 +805,10 @@ stmtBindByPosBadPos(#{session := Conn} = TestCtx) ->
 stmtBindByPosBadVar(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_bindByPos, [Stmt, 1, foobar])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
@@ -618,9 +818,16 @@ stmtBindByPosBadVar(#{session := Conn} = TestCtx) ->
 stmtBindByPosFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     #{var := Var, data := Data} = 
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
+            0, false, false, null]
+        ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_bindByPos, [Stmt, -1, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
@@ -631,9 +838,16 @@ stmtBindByPosFail(#{session := Conn} = TestCtx) ->
 stmtBindByName(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     #{var := Var, data := Data} = 
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
+            0, false, false, null]
+        ),
     ?assertEqual(ok, dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"A">>, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]),
@@ -644,7 +858,11 @@ stmtBindByNameBadStmt(#{session := Conn} = TestCtx) ->
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     #{var := Var, data := Data} = 
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
+                100, 0, false, false, null]
+        ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_bindByName, [foobar, <<"A">>, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
@@ -654,9 +872,16 @@ stmtBindByNameBadStmt(#{session := Conn} = TestCtx) ->
 stmtBindByNameBadPos(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     #{var := Var, data := Data} = 
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
+                0, false, false, null]
+        ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_bindByName, [Stmt, foobar, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
@@ -667,7 +892,10 @@ stmtBindByNameBadPos(#{session := Conn} = TestCtx) ->
 stmtBindByNameBadVar(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"A">>, foobar])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
@@ -677,9 +905,16 @@ stmtBindByNameBadVar(#{session := Conn} = TestCtx) ->
 stmtBindByNameFail(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"insert into test_dpi values (:A)">>, <<"">>]
+    ),
     #{var := Var, data := Data} = 
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
+                0, false, false, null]
+        ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"B">>, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
@@ -688,9 +923,16 @@ stmtBindByNameFail(#{session := Conn} = TestCtx) ->
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
 
 stmtDefine(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     #{var := Var, data := Data} =
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, false, false, null]
+        ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertEqual(ok, dpiCall(TestCtx, stmt_define, [Stmt, 1, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
@@ -699,16 +941,27 @@ stmtDefine(#{session := Conn} = TestCtx) ->
 
 stmtDefineBadStmt(#{session := Conn} = TestCtx) -> 
     #{var := Var, data := Data} =
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, false, false, null]
+        ),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_define, [foobar, 1, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]).
 
 stmtDefineBadPos(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     #{var := Var, data := Data} =
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, false, false, null]
+        ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_define, [Stmt, foobar, Var])),
@@ -717,7 +970,10 @@ stmtDefineBadPos(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtDefineBadVar(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
     dpiCall(TestCtx, stmt_define, [Stmt, 1, foobar])),
@@ -725,9 +981,16 @@ stmtDefineBadVar(#{session := Conn} = TestCtx) ->
 
 % fails due to the pos being invalid
 stmtDefineFail(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     #{var := Var, data := Data} =
-        dpiCall(TestCtx, conn_newVar, [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null]),
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, false, false, null]
+        ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, stmt_define, [Stmt, 12345, Var])),
@@ -736,62 +999,121 @@ stmtDefineFail(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtDefineValue(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?assertEqual(ok, dpiCall(TestCtx, stmt_defineValue, [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0, false, null])),
+    ?assertEqual(ok, 
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0,
+                false, null]
+        )
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtDefineValueBadStmt(#{session := Conn} = TestCtx) -> 
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_defineValue, [foobar, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0, false, null])).
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [foobar, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
+                0, false, null]
+        )
+    ).
 
 stmtDefineValueBadPos(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_defineValue, [Stmt, foobar, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0, false, null])),
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [Stmt, foobar, 'DPI_ORACLE_TYPE_NATIVE_INT',
+                'DPI_NATIVE_TYPE_INT64', 0, false, null]
+        )
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 
 stmtDefineValueBadOraType(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_defineValue, [Stmt, 1, "foobar", 'DPI_NATIVE_TYPE_INT64', 0, false, null])),
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [Stmt, 1, "foobar", 'DPI_NATIVE_TYPE_INT64', 0, false, null]
+        )
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 
 stmtDefineValueBadNativeType(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_defineValue, [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', "foobar", 0, false, null])),
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', "foobar", 0, false, null]
+        )
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 
 stmtDefineValueBadSize(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_defineValue, [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', foobar, false, null])),
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
+                foobar, false, null]
+        )
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 
 stmtDefineValueBadSizeInBytes(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_defineValue, [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0, "foobar", null])),
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0,
+                "foobar", null]
+        )
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 % fails due to invalid position
 stmtDefineValueFail(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, stmt_defineValue, [Stmt, -1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0, false, null])),
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [Stmt, -1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0,
+                false, null]
+        )
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
 
 %-------------------------------------------------------------------------------
 % Variable APIs
@@ -918,15 +1240,25 @@ varReleaseFail(#{session := Conn, context := Context} = TestCtx) ->
 %-------------------------------------------------------------------------------
 
 queryInfoGet(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     QueryInfoRef = dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1]),
     #{name := Name, nullOk := NullOk,
-        typeInfo := #{clientSizeInBytes := ClientSizeInBytes, dbSizeInBytes := DbSizeInBytes,
-            defaultNativeTypeNum := DefaultNativeTypeNum, fsPrecision := FsPrecision,
+        typeInfo := #{clientSizeInBytes := ClientSizeInBytes,
+            dbSizeInBytes := DbSizeInBytes,
+            defaultNativeTypeNum := DefaultNativeTypeNum,
+            fsPrecision := FsPrecision,
             objectType := ObjectType, ociTypeCode := OciTypeCode,
             oracleTypeNum := OracleTypeNum , precision := Precision,
-            scale := Scale, sizeInChars := SizeInChars}} = dpiCall(TestCtx, queryInfo_get, [QueryInfoRef]),
+            scale := Scale, sizeInChars := SizeInChars
+        }
+    } = dpiCall(TestCtx, queryInfo_get, [QueryInfoRef]),
+
+    
+    
 
     ?assert(is_list(Name)),
     ?assert(is_atom(NullOk)),
@@ -950,14 +1282,20 @@ queryInfoGetBadQueryInfo(#{session := Conn} = TestCtx) ->
 
 % fails due to getting a completely wrong reference
 queryInfoGetFail(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     QueryInfoRef = dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1]),
     ?assertException(error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, queryInfo_get, [Conn])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 queryInfoDelete(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"select 1 from dual">>, <<"">>]),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<"">>]
+    ),
     QueryInfoRef = dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1]),
     ?assertEqual(ok, dpiCall(TestCtx, queryInfo_delete, [QueryInfoRef])),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
@@ -983,75 +1321,120 @@ dataSetTimestamp(TestCtx) ->
 
 dataSetTimestampBadData(TestCtx) ->
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, data_setTimestamp, [foobar, 1, 2, 3, 4, 5, 6, 7, 8, 9])).
+        dpiCall(
+            TestCtx, data_setTimestamp,
+            [foobar, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        )
+    ).
 
 dataSetTimestampBadYear(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, data_setTimestamp, [Data, foobar, 2, 3, 4, 5, 6, 7, 8, 9])),
+        dpiCall(
+            TestCtx, data_setTimestamp,
+            [Data, foobar, 2, 3, 4, 5, 6, 7, 8, 9]
+        )
+    ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetTimestampBadMonth(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, data_setTimestamp, [Data, 1, foobar, 3, 4, 5, 6, 7, 8, 9])),
+        dpiCall(
+            TestCtx, data_setTimestamp,
+            [Data, 1, foobar, 3, 4, 5, 6, 7, 8, 9]
+        )
+    ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetTimestampBadDay(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, foobar, 4, 5, 6, 7, 8, 9])),
+        dpiCall(
+            TestCtx, data_setTimestamp,
+            [Data, 1, 2, foobar, 4, 5, 6, 7, 8, 9]
+        )
+    ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetTimestampBadHour(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, foobar, 5, 6, 7, 8, 9])),
+        dpiCall(
+            TestCtx, data_setTimestamp,
+            [Data, 1, 2, 3, foobar, 5, 6, 7, 8, 9]
+        )
+    ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetTimestampBadMinute(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, foobar, 6, 7, 8, 9])),
+        dpiCall(
+            TestCtx, data_setTimestamp,
+            [Data, 1, 2, 3, 4, foobar, 6, 7, 8, 9]
+        )
+    ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetTimestampBadSecond(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, foobar, 7, 8, 9])),
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
+        dpiCall(
+            TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, foobar, 7, 8, 9]
+        )
+    ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetTimestampBadFSecond(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, foobar, 8, 9])),
+        dpiCall(
+            TestCtx, data_setTimestamp,
+            [Data, 1, 2, 3, 4, 5, 6, foobar, 8, 9]
+        )
+    ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetTimestampBadTZHourOffset(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, foobar, 9])),
+        dpiCall(
+            TestCtx, data_setTimestamp,
+            [Data, 1, 2, 3, 4, 5, 6, 7, foobar, 9]
+        )
+    ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetTimestampBadTZMinuteOffset(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, 8, foobar])),
+        dpiCall(
+            TestCtx, data_setTimestamp,
+            [Data, 1, 2, 3, 4, 5, 6, 7, 8, foobar]
+        )
+    ),
     dpiCall(TestCtx, data_release, [Data]).
 
 % fails due to the Data ref passed being completely wrong
-% (it doesn't seem to mind the nonsense parameters. Year -1234567? Sure. Timezone of -22398 hours and 3239 minutes? No problem)
+% (it doesn't seem to mind the nonsense parameters. Year -1234567? Sure.
+% Timezone of -22398 hours and 3239 minutes? No problem)
 dataSetTimestampFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(error, {error, _File, _Line, _Exception},
-        dpiCall(TestCtx, data_setTimestamp, [Conn, -1234567, 2, 3, 4, 5, 6, 7, -22398, 3239])),
+        dpiCall(
+            TestCtx, data_setTimestamp,
+            [Conn, -1234567, 2, 3, 4, 5, 6, 7, -22398, 3239]
+        )
+    ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetTimestampViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_TIMESTAMP_TZ', 'DPI_NATIVE_TYPE_TIMESTAMP', 1, 1,
-            true, true, null
+            Conn, 'DPI_ORACLE_TYPE_TIMESTAMP_TZ', 'DPI_NATIVE_TYPE_TIMESTAMP',
+            1, 1, true, true, null
         ]
     ),
     ?assertEqual(ok,
@@ -1109,8 +1492,8 @@ dataSetIntervalDSFail(#{session := Conn} = TestCtx) ->
 dataSetIntervalDSViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_DS', 'DPI_NATIVE_TYPE_INTERVAL_DS', 1, 1,
-            true, true, null
+            Conn, 'DPI_ORACLE_TYPE_INTERVAL_DS', 'DPI_NATIVE_TYPE_INTERVAL_DS',
+            1, 1, true, true, null
         ]
     ),
     ?assertEqual(ok,
@@ -1151,8 +1534,8 @@ dataSetIntervalYMFail(#{session := Conn} = TestCtx) ->
 dataSetIntervalYMViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 1,
-            true, true, null
+            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
+            1, 1, true, true, null
         ]
     ),
     ?assertEqual(ok,
@@ -1187,8 +1570,8 @@ dataSetInt64Fail(#{session := Conn} = TestCtx) ->
 dataSetInt64ViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 1,
-            true, true, null
+            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
+            1, 1, true, true, null
         ]
     ),
     ?assertEqual(ok,
@@ -1251,8 +1634,8 @@ dataSetIsNullFail(#{session := Conn} = TestCtx) ->
 dataSetIsNullViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 1,
-            true, true, null
+            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
+            1, 1, true, true, null
         ]
     ),
     ?assertEqual(ok,
@@ -1263,8 +1646,8 @@ dataSetIsNullViaPointer(#{session := Conn} = TestCtx) ->
 dataGetNull(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 1,
-            true, true, null
+            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
+            1, 1, true, true, null
         ]
     ),
     dpiCall(TestCtx, data_setIsNull, [Data, true]),
@@ -1311,8 +1694,8 @@ dataGetFloat(#{session := Conn} = TestCtx) ->
 dataGetDouble(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 1, 1,
-            true, true, null
+            Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 1,
+            1, true, true, null
         ]
     ),
     dpiCall(TestCtx, data_setIsNull, [Data, false]),
@@ -1327,7 +1710,9 @@ dataGetBinary(#{session := Conn} = TestCtx) ->
             true, true, null
         ]
     ),
-    ?assertEqual(ok, dpiCall(TestCtx, var_setFromBytes, [Var, 0, <<"my string">>])),
+    ?assertEqual(ok, 
+        dpiCall(TestCtx, var_setFromBytes, [Var, 0, <<"my string">>])
+    ),
     dpiCall(TestCtx, data_setIsNull, [Data, false]),
     ?assert(is_binary(dpiCall(TestCtx, data_get, [Data]))),
     dpiCall(TestCtx, data_release, [Data]),
@@ -1336,15 +1721,15 @@ dataGetBinary(#{session := Conn} = TestCtx) ->
 dataGetTimestamp(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_TIMESTAMP_TZ', 'DPI_NATIVE_TYPE_TIMESTAMP', 1, 100,
-            true, true, null
+            Conn, 'DPI_ORACLE_TYPE_TIMESTAMP_TZ', 'DPI_NATIVE_TYPE_TIMESTAMP',
+            1, 100, true, true, null
         ]
     ),
     dpiCall(TestCtx, data_setIsNull, [Data, false]),
-    #{year := Year, month := Month, day := Day,
-        hour := Hour, minute := Minute, second := Second, 
-        fsecond := Fsecond, tzHourOffset := TzHourOffset, tzMinuteOffset := TzMinuteOffset} =
-        dpiCall(TestCtx, data_get, [Data]),
+    #{year := Year, month := Month, day := Day, hour := Hour, minute := Minute,
+        second := Second, fsecond := Fsecond, tzHourOffset := TzHourOffset,
+        tzMinuteOffset := TzMinuteOffset
+    } = dpiCall(TestCtx, data_get, [Data]),
     ?assert(is_integer(Year)),
     ?assert(is_integer(Month)),
     ?assert(is_integer(Day)),
@@ -1360,8 +1745,8 @@ dataGetTimestamp(#{session := Conn} = TestCtx) ->
 dataGetIntervalDS(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_DS', 'DPI_NATIVE_TYPE_INTERVAL_DS', 1, 100,
-            true, true, null
+            Conn, 'DPI_ORACLE_TYPE_INTERVAL_DS', 'DPI_NATIVE_TYPE_INTERVAL_DS',
+            1, 100, true, true, null
         ]
     ),
     dpiCall(TestCtx, data_setIsNull, [Data, false]),
@@ -1380,8 +1765,8 @@ dataGetIntervalDS(#{session := Conn} = TestCtx) ->
 dataGetIntervalYM(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM', 1, 100,
-            true, true, null
+            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
+            1, 100, true, true, null
         ]
     ),
     dpiCall(TestCtx, data_setIsNull, [Data, false]),
@@ -1904,7 +2289,8 @@ get_column_values(TestCtx, Stmt, ColIdx, Limit) ->
 % gets a value out of a fetched set, compares it using an assertation,
 % then cleans is up again
 assert_getQueryValue(TestCtx, Stmt, Index, Value) ->
-    #{data := QueryValueRef} = dpiCall(TestCtx, stmt_getQueryValue, [Stmt, Index]),
+    #{data := QueryValueRef} =
+        dpiCall(TestCtx, stmt_getQueryValue, [Stmt, Index]),
     ?assertEqual(Value, dpiCall(TestCtx, data_get, [QueryValueRef])),
 	dpiCall(TestCtx, data_release, [QueryValueRef]),
     ok.
@@ -1912,12 +2298,15 @@ assert_getQueryValue(TestCtx, Stmt, Index, Value) ->
 
 assert_getQueryInfo(TestCtx, Stmt, Index, Value, Atom) ->
     QueryInfoRef = dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, Index]),
-    ?assertEqual(Value, maps:get(Atom, dpiCall(TestCtx, queryInfo_get, [QueryInfoRef]))),
+    ?assertEqual(
+        Value, maps:get(Atom, dpiCall(TestCtx, queryInfo_get, [QueryInfoRef]))
+    ),
 	dpiCall(TestCtx, queryInfo_delete, [QueryInfoRef]),
     ok.
 
 extract_getQueryValue(TestCtx, Stmt, Index) ->
-    #{data := QueryValueRef} = dpiCall(TestCtx, stmt_getQueryValue, [Stmt, Index]),
+    #{data := QueryValueRef} =
+        dpiCall(TestCtx, stmt_getQueryValue, [Stmt, Index]),
     Result = dpiCall(TestCtx, data_get, [QueryValueRef]),
 	dpiCall(TestCtx, data_release, [QueryValueRef]),
     Result.
