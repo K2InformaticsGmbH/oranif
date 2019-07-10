@@ -96,7 +96,8 @@ contextGetClientVersionBadContext(TestCtx) ->
     ?assertException(
         error,
         {error, _File, _Line, "Unable to retrieve resource context from arg0"},
-        dpiCall(TestCtx, context_getClientVersion, [?BAD_REF])),
+        dpiCall(TestCtx, context_getClientVersion, [?BAD_REF])
+    ),
     dpiCall(TestCtx, context_destroy, [Context]).
 
 % fails due to a wrong handle being passed
@@ -991,7 +992,8 @@ stmtBindByPosBadVar(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
         {error, _File, _Line, "Unable to retrieve resource var from arg3"},
-        dpiCall(TestCtx, stmt_bindByPos, [Stmt, 1, ?BAD_REF])),
+        dpiCall(TestCtx, stmt_bindByPos, [Stmt, 1, ?BAD_REF])
+    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
 
@@ -1464,7 +1466,8 @@ varReleaseBadVar(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
         {error, _File, _Line, "Unable to retrieve resource var from arg0"},
-        dpiCall(TestCtx, var_release, [?BAD_REF])).
+        dpiCall(TestCtx, var_release, [?BAD_REF])
+    ).
 
 % fails due to the reference being wrong
 varReleaseFail(#{session := Conn, context := Context} = TestCtx) ->
@@ -1812,8 +1815,8 @@ dataSetIntervalYMBadMonths(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     ?assertException(
         error, {error, _File, _Line, "Unable to retrieve int months from arg2"},
-        dpiCall(TestCtx, data_setIntervalYM, [Data, 1, ?BAD_INT]
-    )),
+        dpiCall(TestCtx, data_setIntervalYM, [Data, 1, ?BAD_INT])
+    ),
     dpiCall(TestCtx, data_release, [Data]).
 
 % fails due to the Data ref passed being completely wrong
