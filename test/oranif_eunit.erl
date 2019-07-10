@@ -15,7 +15,7 @@
     end)()
 ).
 
--define(BAD_INT, -999999999999999999999999999999999999999999999999999999).
+-define(BAD_INT, -16#FFFFFFFFFFFFFFFF1).
 -define(BAD_REF, make_ref()).
 %-------------------------------------------------------------------------------
 % Context APIs
@@ -30,13 +30,13 @@ contextCreate(TestCtx) ->
 
 contextCreateBadMaj(TestCtx) ->
     ?assertException(
-        error, {error, _File, _Line, _Exception},
+        error, {error, _File, _Line, "Unable to retrieve uint major from arg0"},
         dpiCall(TestCtx, context_create, [?BAD_INT, ?DPI_MINOR_VERSION])
     ).
 
 contextCreateBadMin(TestCtx) ->
     ?assertException(
-        error, {error, _File, _Line, _Exception},
+        error, {error, _File, _Line, "Unable to retrieve uint minor from arg1"},
         dpiCall(TestCtx, context_create, [?DPI_MAJOR_VERSION, ?BAD_INT])
     ).
 
