@@ -15,8 +15,15 @@
     end)()
 ).
 
+%-------------------------------------------------------------------------------
+% MACROs
+%-------------------------------------------------------------------------------
+
 -define(BAD_INT, -16#FFFFFFFFFFFFFFFF1).
 -define(BAD_REF, make_ref()).
+-define(W(_Tests), fun(__Ctx) -> _Tests end).
+-define(F(__Fn), {??__Fn, fun() -> __Fn(__Ctx) end}).
+
 %-------------------------------------------------------------------------------
 % Context APIs
 %-------------------------------------------------------------------------------
@@ -44,8 +51,8 @@ contextCreateBadMin(TestCtx) ->
 contextCreateFail(TestCtx) ->
     ?assertException(
         error, {error, _},
-        dpiCall(TestCtx, context_create, [1337, ?DPI_MINOR_VERSION])),
-    ok.
+        dpiCall(TestCtx, context_create, [1337, ?DPI_MINOR_VERSION])
+    ).
 
 contextDestroy(TestCtx) ->
     Context = dpiCall(
@@ -1394,8 +1401,7 @@ varSetFromBytesBadVar(#{session := Conn} = TestCtx) ->
         error,
         {error, _File, _Line, "Unable to retrieve resource vat from arg0"},
         dpiCall(TestCtx, var_setFromBytes, [?BAD_REF, 0, <<"abc">>])
-    ),
-    ok.
+    ).
 
 varSetFromBytesBadPos(#{session := Conn} = TestCtx) ->
     #{var := Var, data := Data} = dpiCall(
@@ -2326,8 +2332,9 @@ cleanup(#{safe := true, node := SlaveNode} = Ctx) ->
     ok;
 cleanup(_) -> ok.
 
--define(W(_Tests), fun(__Ctx) -> _Tests end).
--define(F(__Fn), {??__Fn, fun() -> __Fn(__Ctx) end}).
+%-------------------------------------------------------------------------------
+% Internal functions
+%-------------------------------------------------------------------------------
 
 -define(NO_CONTEXT_TESTS, [
     ?F(contextCreate),
@@ -2534,10 +2541,6 @@ cleanup(_) -> ok.
     ?F(dataReleaseViaPointer)
 ]).
 
-%-------------------------------------------------------------------------------
-% Internal functions
-%-------------------------------------------------------------------------------
-
 dpiCall(#{safe := true, node := Node}, F, A) ->
     case dpi:safe(Node, dpi, F, A) of
         {error, Error} -> error(Error);
@@ -2580,8 +2583,7 @@ assert_getQueryValue(TestCtx, Stmt, Index, Value) ->
     #{data := QueryValueRef} =
         dpiCall(TestCtx, stmt_getQueryValue, [Stmt, Index]),
     ?assertEqual(Value, dpiCall(TestCtx, data_get, [QueryValueRef])),
-	dpiCall(TestCtx, data_release, [QueryValueRef]),
-    ok.
+	dpiCall(TestCtx, data_release, [QueryValueRef]).
 
 
 assert_getQueryInfo(TestCtx, Stmt, Index, Value, Atom) ->
@@ -2589,8 +2591,7 @@ assert_getQueryInfo(TestCtx, Stmt, Index, Value, Atom) ->
     ?assertEqual(
         Value, maps:get(Atom, dpiCall(TestCtx, queryInfo_get, [QueryInfoRef]))
     ),
-	dpiCall(TestCtx, queryInfo_delete, [QueryInfoRef]),
-    ok.
+	dpiCall(TestCtx, queryInfo_delete, [QueryInfoRef]).
 
 extract_getQueryValue(TestCtx, Stmt, Index) ->
     #{data := QueryValueRef} =
