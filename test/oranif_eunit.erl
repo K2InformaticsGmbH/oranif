@@ -1862,7 +1862,11 @@ session_test_() ->
 % Internal functions
 %-------------------------------------------------------------------------------
 
-dpiCall(#{safe := true, node := Node}, F, A) -> dpi:safe(Node, dpi, F, A);
+dpiCall(#{safe := true, node := Node}, F, A) ->
+    case dpi:safe(Node, dpi, F, A) of
+        {error, Error} -> error(Error);
+        Result -> Result
+    end;
 dpiCall(#{safe := false}, F, A) -> apply(dpi, F, A).
 
 getConfig() ->
