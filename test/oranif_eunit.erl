@@ -42,7 +42,8 @@ contextCreateBadMin(TestCtx) ->
 
 % fails due to nonsense major version
 contextCreateFail(TestCtx) ->
-    ?assertException(error, {error, _},
+    ?assertException(
+        error, {error, _},
         dpiCall(TestCtx, context_create, [1337, ?DPI_MINOR_VERSION])),
     ok.
 
@@ -65,7 +66,8 @@ contextDestroyBadContextState(TestCtx) ->
     % destroy the context
     ?assertEqual(ok, dpiCall(TestCtx, context_destroy, [Context])),
     % try to destroy it again
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, context_destroy, [Context])
     ).
 
@@ -113,7 +115,8 @@ connCreate(#{context := Context} = TestCtx) ->
 connCreateBadContext(TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     ?assertException(
-        error, {error, _File, _Line, "Unable to retrieve resource context from arg0"},
+        error,
+        {error, _File, _Line, "Unable to retrieve resource context from arg0"},
         dpiCall(
             TestCtx, conn_create, [
                 ?BAD_REF, User, Password, Tns,
@@ -146,7 +149,8 @@ connCreateBadPass(#{context := Context} = TestCtx) ->
 
 connCreateBadTNS(#{context := Context} = TestCtx) ->
     #{tns := _Tns, user := User, password := Password} = getConfig(),
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(
             TestCtx, conn_create,
                 [Context, User, Password, badBin,
@@ -210,7 +214,9 @@ connPrepareStmtEmptyTag(#{session := Conn} = TestCtx) ->
 
 connPrepareStmtBadConn(TestCtx) ->
     ?assertException(
-        error, {error, _File, _Line, "Unable to retrieve resource connection from arg0"},
+        error,
+        {error, _File, _Line,
+            "Unable to retrieve resource connection from arg0"},
         dpiCall(
             TestCtx, conn_prepareStmt, [?BAD_REF, false, <<"miau">>, <<>>]
         )
@@ -261,7 +267,8 @@ connNewVar(#{session := Conn} = TestCtx) ->
 connNewVarBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource connection from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource connection from arg0"},
         dpiCall(
             TestCtx, conn_newVar, 
             [?BAD_REF, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE',
@@ -289,7 +296,7 @@ connNewVarBadDpiType(#{session := Conn} = TestCtx) ->
         )
     ).
 
-connNewVarBadArraySize(#{session := Conn} = TestCtx) -> % TODO: checke error message
+connNewVarBadArraySize(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
         {error, _File, _Line, "Unable to retrieve uint size from arg3"},
@@ -359,13 +366,15 @@ connCommit(#{session := Conn} = TestCtx) ->
 connCommitBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource connection from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource connection from arg0"},
         dpiCall(TestCtx, conn_commit, [?BAD_REF])
     ).
 
 % fails due to the reference being wrong
 connCommitFail(#{context := Context} = TestCtx) ->
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, conn_commit, [Context])
     ).
 
@@ -376,7 +385,8 @@ connRollback(#{session := Conn} = TestCtx) ->
 connRollbackBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource connection from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource connection from arg0"},
         dpiCall(TestCtx, conn_rollback, [?BAD_REF])
     ).
 
@@ -394,7 +404,8 @@ connPing(#{session := Conn} = TestCtx) ->
 connPingBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource connection from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource connection from arg0"},
         dpiCall(TestCtx, conn_ping, [?BAD_REF])).
 
 % fails due to the reference being wrong
@@ -428,7 +439,8 @@ connCloseWithModes(#{context := Context} = TestCtx) ->
 connCloseBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource connection from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource connection from arg0"},
         dpiCall(TestCtx, conn_close, [?BAD_REF, [], <<>>])
     ).
 
@@ -479,7 +491,8 @@ connGetServerVersion(#{session := Conn} = TestCtx) ->
 connGetServerVersionBadConn(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource connection from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource connection from arg0"},
         dpiCall(TestCtx, conn_getServerVersion, [?BAD_REF])
     ).
 
@@ -522,7 +535,8 @@ stmtExecuteWithModes(#{session := Conn} = TestCtx) ->
 stmtExecutebadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource statement from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource statement from arg0"},
         dpiCall(TestCtx, stmt_execute, [?BAD_REF, []])
     ).
 
@@ -572,7 +586,8 @@ stmtFetch(#{session := Conn} = TestCtx) ->
 stmtFetchBadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource statement from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource statement from arg0"},
         dpiCall(TestCtx, stmt_fetch, [?BAD_REF])
     ).
 
@@ -604,7 +619,8 @@ stmtGetQueryValue(#{session := Conn} = TestCtx) ->
 stmtGetQueryValueBadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource statement from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource statement from arg0"},
         dpiCall(TestCtx, stmt_getQueryValue, [?BAD_REF, 1])
     ).
 
@@ -646,7 +662,8 @@ stmtGetQueryInfo(#{session := Conn} = TestCtx) ->
 stmtGetQueryInfoBadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource statement from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource statement from arg0"},
         dpiCall(TestCtx, stmt_getQueryInfo, [?BAD_REF, 1])
     ).
 
@@ -687,7 +704,8 @@ stmtGetNumQueryColumns(#{session := Conn} = TestCtx) ->
 stmtGetNumQueryColumnsBadStmt(#{session := Conn} = TestCtx) ->
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource statement from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource statement from arg0"},
         dpiCall(TestCtx, stmt_getNumQueryColumns, [?BAD_REF])
     ).
 
@@ -724,7 +742,8 @@ stmtBindValueByPosBadStmt(#{session := Conn} = TestCtx) ->
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource statement from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource statement from arg0"},
         dpiCall(
             TestCtx, stmt_bindValueByPos,
             [?BAD_REF, 1, 'DPI_NATIVE_TYPE_INT64', BindData]
@@ -819,7 +838,8 @@ stmtBindValueByNameBadStmt(#{session := Conn} = TestCtx) ->
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource statement from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource statement from arg0"},
         dpiCall(
             TestCtx, stmt_bindValueByName, 
             [?BAD_REF, <<"A">>, 'DPI_NATIVE_TYPE_INT64', BindData]
@@ -923,7 +943,8 @@ stmtBindByPosBadStmt(#{session := Conn} = TestCtx) ->
         ),
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource statement from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource statement from arg0"},
         dpiCall(TestCtx, stmt_bindByPos, [?BAD_REF, 1, Var])
     ),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
@@ -1020,7 +1041,8 @@ stmtBindByNameBadStmt(#{session := Conn} = TestCtx) ->
         ),
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource statement from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource statement from arg0"},
         dpiCall(TestCtx, stmt_bindByName, [?BAD_REF, <<"A">>, Var])
     ),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
@@ -1113,7 +1135,8 @@ stmtDefineBadStmt(#{session := Conn} = TestCtx) ->
         ),
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource statement from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource statement from arg0"},
         dpiCall(TestCtx, stmt_define, [?BAD_REF, 1, Var])
     ),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
@@ -1192,7 +1215,8 @@ stmtDefineValue(#{session := Conn} = TestCtx) ->
 stmtDefineValueBadStmt(#{session := Conn} = TestCtx) -> 
     ?assertException(
         error,
-        {error, _File, _Line, "Unable to retrieve resource statement from arg0"},
+        {error, _File, _Line,
+            "Unable to retrieve resource statement from arg0"},
         dpiCall(
             TestCtx, stmt_defineValue,
             [?BAD_REF, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
@@ -1482,7 +1506,10 @@ queryInfoGet(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 queryInfoGetBadQueryInfo(#{session := Conn} = TestCtx) ->
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve resource queryinfo from arg0"},
+    ?assertException(
+        error,
+        {error, _File, _Line,
+            "Unable to retrieve resource queryinfo from arg0"},
         dpiCall(TestCtx, queryInfo_get, [?BAD_REF])
     ).
 
@@ -1493,7 +1520,8 @@ queryInfoGetFail(#{session := Conn} = TestCtx) ->
         [Conn, false, <<"select 1 from dual">>, <<>>]
     ),
     QueryInfoRef = dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1]),
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, queryInfo_get, [Conn])
     ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
@@ -1508,13 +1536,17 @@ queryInfoDelete(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 queryInfoDeleteBadQueryInfo(#{session := Conn} = TestCtx) ->
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve resource queryInfo from arg0"},
+    ?assertException(
+        error,
+        {error, _File, _Line,
+            "Unable to retrieve resource queryInfo from arg0"},
         dpiCall(TestCtx, queryInfo_delete, [?BAD_REF])
     ).
 
 % fails due to getting a completely wrong reference
 queryInfoDeleteFail(#{session := Conn} = TestCtx) ->
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, queryInfo_delete, [Conn])
     ).
 
@@ -1530,7 +1562,9 @@ dataSetTimestamp(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetTimestampBadData(TestCtx) ->
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
         dpiCall(
             TestCtx, data_setTimestamp,
             [?BAD_REF, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -1539,7 +1573,8 @@ dataSetTimestampBadData(TestCtx) ->
 
 dataSetTimestampBadYear(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int year from arg1"},
+    ?assertException(
+        error, {error, _File, _Line, "Unable to retrieve int year from arg1"},
         dpiCall(
             TestCtx, data_setTimestamp,
             [Data, ?BAD_INT, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -1549,7 +1584,8 @@ dataSetTimestampBadYear(TestCtx) ->
 
 dataSetTimestampBadMonth(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int month from arg2"},
+    ?assertException(
+        error, {error, _File, _Line, "Unable to retrieve int month from arg2"},
         dpiCall(
             TestCtx, data_setTimestamp,
             [Data, 1, ?BAD_INT, 3, 4, 5, 6, 7, 8, 9]
@@ -1559,7 +1595,8 @@ dataSetTimestampBadMonth(TestCtx) ->
 
 dataSetTimestampBadDay(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int day from arg3"},
+    ?assertException(
+        error, {error, _File, _Line, "Unable to retrieve int day from arg3"},
         dpiCall(
             TestCtx, data_setTimestamp,
             [Data, 1, 2, ?BAD_INT, 4, 5, 6, 7, 8, 9]
@@ -1569,7 +1606,8 @@ dataSetTimestampBadDay(TestCtx) ->
 
 dataSetTimestampBadHour(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int hour from arg4"},
+    ?assertException(
+        error, {error, _File, _Line, "Unable to retrieve int hour from arg4"},
         dpiCall(
             TestCtx, data_setTimestamp,
             [Data, 1, 2, 3, ?BAD_INT, 5, 6, 7, 8, 9]
@@ -1579,7 +1617,9 @@ dataSetTimestampBadHour(TestCtx) ->
 
 dataSetTimestampBadMinute(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int minute from arg5"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve int minute from arg5"},
         dpiCall(
             TestCtx, data_setTimestamp,
             [Data, 1, 2, 3, 4, ?BAD_INT, 6, 7, 8, 9]
@@ -1599,7 +1639,9 @@ dataSetTimestampBadSecond(TestCtx) ->
 
 dataSetTimestampBadFSecond(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int fsecond from arg7"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve int fsecond from arg7"},
         dpiCall(
             TestCtx, data_setTimestamp,
             [Data, 1, 2, 3, 4, 5, 6, ?BAD_INT, 8, 9]
@@ -1609,7 +1651,9 @@ dataSetTimestampBadFSecond(TestCtx) ->
 
 dataSetTimestampBadTZHourOffset(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int tzHourOffset from arg8"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve int tzHourOffset from arg8"},
         dpiCall(
             TestCtx, data_setTimestamp,
             [Data, 1, 2, 3, 4, 5, 6, 7, ?BAD_INT, 9]
@@ -1619,7 +1663,10 @@ dataSetTimestampBadTZHourOffset(TestCtx) ->
 
 dataSetTimestampBadTZMinuteOffset(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int tzMinuteOffset from arg9"},
+    ?assertException(
+        error,
+        {error, _File, _Line,
+            "Unable to retrieve int tzMinuteOffset from arg9"},
         dpiCall(
             TestCtx, data_setTimestamp,
             [Data, 1, 2, 3, 4, 5, 6, 7, 8, ?BAD_INT]
@@ -1632,7 +1679,8 @@ dataSetTimestampBadTZMinuteOffset(TestCtx) ->
 % Timezone of -22398 hours and 3239 minutes? No problem)
 dataSetTimestampFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(
             TestCtx, data_setTimestamp,
             [Conn, -1234567, 2, 3, 4, 5, 6, 7, -22398, 3239]
@@ -1661,41 +1709,51 @@ dataSetIntervalDS(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetIntervalDSBadData(TestCtx) ->
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
         dpiCall(TestCtx, data_setIntervalDS, [?BAD_REF, 1, 2, 3, 4, 5])
     ).
 
 dataSetIntervalDSBadDays(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int days from arg1"},
+    ?assertException(
+        error, {error, _File, _Line, "Unable to retrieve int days from arg1"},
         dpiCall(TestCtx, data_setIntervalDS, [Data, ?BAD_INT, 2, 3, 4, 5])
     ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetIntervalDSBadHours(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int hours from arg2"},
+    ?assertException(
+        error, {error, _File, _Line, "Unable to retrieve int hours from arg2"},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, ?BAD_INT, 3, 4, 5])
     ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetIntervalDSBadMinutes(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int minutes from arg3"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve int minutes from arg3"},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, ?BAD_INT, 4, 5])
     ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetIntervalDSBadSeconds(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int seconds from arg4"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve int seconds from arg4"},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, ?BAD_INT, 5])
     ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetIntervalDSBadFSeconds(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int fseconds from arg5"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve int fseconds from arg5"},
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, 4, ?BAD_INT])
     ),
     dpiCall(TestCtx, data_release, [Data]).
@@ -1703,7 +1761,8 @@ dataSetIntervalDSBadFSeconds(TestCtx) ->
 % fails due to the Data ref passed being completely wrong
 dataSetIntervalDSFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalDS, [Conn, 1, 2, 3, 4, 5])
     ),
     dpiCall(TestCtx, data_release, [Data]).
@@ -1729,20 +1788,24 @@ dataSetIntervalYM(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetIntervalYMBadData(TestCtx) ->
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
         dpiCall(TestCtx, data_setIntervalYM, [?BAD_REF, 1, 2])
     ).
 
 dataSetIntervalYMBadYears(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int years from arg1"},
+    ?assertException(
+        error, {error, _File, _Line, "Unable to retrieve int years from arg1"},
         dpiCall(TestCtx, data_setIntervalYM, [Data, ?BAD_INT, 2])
     ),
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetIntervalYMBadMonths(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int months from arg2"},
+    ?assertException(
+        error, {error, _File, _Line, "Unable to retrieve int months from arg2"},
         dpiCall(TestCtx, data_setIntervalYM, [Data, 1, ?BAD_INT]
     )),
     dpiCall(TestCtx, data_release, [Data]).
@@ -1750,7 +1813,8 @@ dataSetIntervalYMBadMonths(TestCtx) ->
 % fails due to the Data ref passed being completely wrong
 dataSetIntervalYMFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIntervalYM, [Conn, 1, 2])
     ),
     dpiCall(TestCtx, data_release, [Data]).
@@ -1776,13 +1840,16 @@ dataSetInt64(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetInt64BadData(TestCtx) ->
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
         dpiCall(TestCtx, data_setInt64, [?BAD_REF, 1])
     ).
 
 dataSetInt64BadAmount(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve int amount from arg1"},
+    ?assertException(
+        error, {error, _File, _Line, "Unable to retrieve int amount from arg1"},
         dpiCall(TestCtx, data_setInt64, [Data, ?BAD_INT])
     ),
     dpiCall(TestCtx, data_release, [Data]).
@@ -1790,7 +1857,8 @@ dataSetInt64BadAmount(TestCtx) ->
 % fails due to the Data ref passed being completely wrong
 dataSetInt64Fail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setInt64, [Conn, 1])
     ),
     dpiCall(TestCtx, data_release, [Data]).
@@ -1816,13 +1884,16 @@ dataSetBytes(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetBytesBadData(TestCtx) ->
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
         dpiCall(TestCtx, data_setBytes, [?BAD_REF, <<"my string">>])
     ).
 
 dataSetBytesBadBinary(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setBytes, [Data, badBinary])
     ),
     dpiCall(TestCtx, data_release, [Data]).
@@ -1830,7 +1901,8 @@ dataSetBytesBadBinary(TestCtx) ->
 % fails due to the Data ref passed being completely wrong
 dataSetBytesFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setBytes, [Conn, <<"my string">>])
     ),
     dpiCall(TestCtx, data_release, [Data]).
@@ -1850,13 +1922,16 @@ dataSetIsNullFalse(TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]).
 
 dataSetIsNullBadData(TestCtx) ->
-    ?assertException(error, {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
         dpiCall(TestCtx, data_setIsNull, [?BAD_REF, 1])
     ).
 
 dataSetIsNullBadIsNull(TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIsNull, [Data, "not an atom"])
     ),
     dpiCall(TestCtx, data_release, [Data]).
@@ -1864,7 +1939,8 @@ dataSetIsNullBadIsNull(TestCtx) ->
 % fails due to the Data ref passed being completely wrong
 dataSetIsNullFail(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_setIsNull, [Conn, 1])
     ),
     dpiCall(TestCtx, data_release, [Data]).
@@ -2110,7 +2186,8 @@ dataGetBadData(TestCtx) ->
 
 % fails due to completely wrong reference
 dataGetFail(#{session := Conn} = TestCtx) ->
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_get, [Conn])
     ).
 
@@ -2129,7 +2206,8 @@ dataGetInt64BadData(#{session := Conn} = TestCtx) ->
 
 % fails due to completely wrong reference
 dataGetInt64Fail(#{session := Conn} = TestCtx) ->
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_getInt64, [Conn])
     ).
 
@@ -2167,7 +2245,8 @@ dataGetBytesBadData(#{session := Conn} = TestCtx) ->
 
 % fails due to completely wrong reference
 dataGetBytesFail(#{session := Conn} = TestCtx) ->
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_getBytes, [Conn])
     ).
 
@@ -2186,7 +2265,8 @@ dataReleaseBadData(#{session := Conn} = TestCtx) ->
 
 % fails due to completely wrong reference
 dataReleaseFail(#{session := Conn} = TestCtx) ->
-    ?assertException(error, {error, _File, _Line, _Exception},
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
         dpiCall(TestCtx, data_release, [Conn])
     ).
 
