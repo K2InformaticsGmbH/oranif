@@ -516,6 +516,32 @@ connGetServerVersionFail(#{context := Context} = TestCtx) ->
         dpiCall(TestCtx, conn_getServerVersion, [Context])
     ).
 
+connSetClientIdentifier(#{session := Conn} = TestCtx) ->
+   ?assertEqual(ok,
+        dpiCall(
+            TestCtx, conn_setClientIdentifier, 
+            [Conn, <<"myCoolConnection">>]
+        )
+    ).
+
+connSetClientIdentifierBadConn(TestCtx) ->
+    ?assertException(
+        error,
+        {error, _File, _Line, 
+            "Unable to retrieve resource connection from arg0"},
+        dpiCall(
+            TestCtx, conn_setClientIdentifier, [?BAD_REF, <<"myCoolConnection">>])
+    ).
+
+connSetClientIdentifierBadValue(#{session := Conn} = TestCtx) ->
+    ?assertException(
+        error,
+        {error, _File, _Line, 
+            "Unable to retrieve string/binary value from arg1"},
+        dpiCall(
+            TestCtx, conn_setClientIdentifier, [Conn, badBinary]
+        )
+    ).
 %-------------------------------------------------------------------------------
 % Statement APIs
 %-------------------------------------------------------------------------------
@@ -2430,6 +2456,9 @@ cleanup(_) -> ok.
     ?F(connGetServerVersion),
     ?F(connGetServerVersionBadConn),
     ?F(connGetServerVersionFail),
+    ?F(connSetClientIdentifier),
+    ?F(connSetClientIdentifierBadConn),
+    ?F(connSetClientIdentifierBadValue),
     ?F(stmtExecute),
     ?F(stmtExecuteWithModes),
     ?F(stmtExecutebadStmt),
