@@ -2200,6 +2200,21 @@ dataGetFail(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, data_get, [Conn])
     ).
 
+dataGetUnsupportedType(#{session := Conn} = TestCtx) ->
+    #{var := Var, data := [Data]} = dpiCall(
+        TestCtx, conn_newVar, 
+        [Conn, 'DPI_ORACLE_TYPE_CLOB', 'DPI_NATIVE_TYPE_LOB',
+            1, 0, false, false, null]
+    ),
+    dpiCall(TestCtx, data_setIsNull, [Data, false]),
+    ?assertException(
+        error,
+        {error, _File, _Line, "Unsupported nativeTypeNum"},
+        dpiCall(TestCtx, data_get, [Data])
+    ),
+    dpiCall(TestCtx, data_release, [Data]),
+    dpiCall(TestCtx, var_release, [Var]).
+
 dataGetInt64(#{session := Conn} = TestCtx) ->
     Data = dpiCall(TestCtx, data_ctor, []),
     dpiCall(TestCtx, data_setIsNull, [Data, false]),
@@ -2531,6 +2546,7 @@ cleanup(_) -> ok.
     ?F(dataGetStmtChange),
     ?F(dataGetBadData),
     ?F(dataGetFail),
+    ?F(dataGetUnsupportedType),
     ?F(dataGetInt64),
     ?F(dataGetInt64BadData),
     ?F(dataGetInt64Fail),
