@@ -542,6 +542,7 @@ connSetClientIdentifierBadValue(#{session := Conn} = TestCtx) ->
             TestCtx, conn_setClientIdentifier, [Conn, badBinary]
         )
     ).
+
 %-------------------------------------------------------------------------------
 % Statement APIs
 %-------------------------------------------------------------------------------
@@ -1359,6 +1360,37 @@ stmtDefineValueFail(#{session := Conn} = TestCtx) ->
         )
     ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
+
+stmtClose(#{session := Conn} = TestCtx) -> 
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<>>]
+    ),
+    ?assertEqual(ok, dpiCall(TestCtx, stmt_close, [Stmt, <<>>])).
+
+stmtCloseBadStmt(#{session := Conn} = TestCtx) -> 
+     ?assertException(
+        error, {error, _File, _Line, _Exception},
+        dpiCall(TestCtx, stmt_close, [?BAD_REF, <<>>])
+    ).
+
+stmtCloseBadTag(#{session := Conn} = TestCtx) -> 
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1 from dual">>, <<>>]
+    ),
+    ?assertException(
+        error, {error, _File, _Line, _Exception},
+        dpiCall(TestCtx, stmt_close, [Stmt, badBinary])
+    ),
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
+
+% fails due to wrong reference
+stmtCloseFail(#{session := Conn} = TestCtx) -> 
+     ?assertException(
+        error, {error, _File, _Line, _Exception},
+        dpiCall(TestCtx, stmt_close, [Conn, <<>>])
+    ).
 
 %-------------------------------------------------------------------------------
 % Variable APIs
@@ -2514,6 +2546,10 @@ cleanup(_) -> ok.
     ?F(stmtDefineValueBadSize),
     ?F(stmtDefineValueBadSizeInBytes),
     ?F(stmtDefineValueFail),
+    ?F(stmtClose),
+    ?F(stmtCloseBadStmt),
+    ?F(stmtCloseBadTag),
+    ?F(stmtCloseFail),
     ?F(varSetNumElementsInArray),
     ?F(varSetNumElementsInArrayBadVar),
     ?F(varSetNumElementsInArrayBadNumElements),
