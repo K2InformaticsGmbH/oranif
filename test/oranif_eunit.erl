@@ -2235,6 +2235,12 @@ dataGetInt64Fail(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, data_getInt64, [Conn])
     ).
 
+dataGetInt64Null(#{session := Conn} = TestCtx) ->
+    Data = dpiCall(TestCtx, data_ctor, []),
+    dpiCall(TestCtx, data_setIsNull, [Data, true]),
+    ?assertEqual(null, dpiCall(TestCtx, data_getInt64, [Data])),
+    dpiCall(TestCtx, data_release, [Data]).
+
 dataGetInt64ViaPointer(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
@@ -2266,6 +2272,12 @@ dataGetBytesBadData(#{session := Conn} = TestCtx) ->
         {error, _File, _Line, "Unable to retrieve resource data/ptr from arg0"},
         dpiCall(TestCtx, data_getBytes, [?BAD_REF])
     ).
+
+dataGetBytesNull(#{session := Conn} = TestCtx) ->
+    Data = dpiCall(TestCtx, data_ctor, []),
+    dpiCall(TestCtx, data_setIsNull, [Data, true]),
+    ?assertEqual(null, dpiCall(TestCtx, data_getBytes, [Data])),
+    dpiCall(TestCtx, data_release, [Data]).
 
 % fails due to completely wrong reference
 dataGetBytesFail(#{session := Conn} = TestCtx) ->
@@ -2372,6 +2384,7 @@ cleanup(_) -> ok.
     ?F(connCreateBadContext),
     ?F(connCreateBadUsername),
     ?F(connCreateBadPass),
+    ?F(connCreateBadTNS),
     ?F(connCreateBadUsername),
     ?F(connCreateBadParams),
     ?F(connCreateBadEncoding),
@@ -2550,10 +2563,12 @@ cleanup(_) -> ok.
     ?F(dataGetInt64),
     ?F(dataGetInt64BadData),
     ?F(dataGetInt64Fail),
+    ?F(dataGetInt64Null),
     ?F(dataGetInt64ViaPointer),
     ?F(dataGetBytes),
     ?F(dataGetBytesBadData),
     ?F(dataGetBytesFail),
+    ?F(dataGetBytesNull),
     ?F(dataRelease),
     ?F(dataReleaseBadData),
     ?F(dataReleaseFail),
