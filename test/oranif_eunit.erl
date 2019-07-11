@@ -530,7 +530,9 @@ connSetClientIdentifierBadConn(TestCtx) ->
         {error, _File, _Line, 
             "Unable to retrieve resource connection from arg0"},
         dpiCall(
-            TestCtx, conn_setClientIdentifier, [?BAD_REF, <<"myCoolConnection">>])
+            TestCtx, conn_setClientIdentifier,
+            [?BAD_REF, <<"myCoolConnection">>]
+        )
     ).
 
 connSetClientIdentifierBadValue(#{session := Conn} = TestCtx) ->
