@@ -115,18 +115,13 @@ start_slave(SlaveNodeName) when is_atom(SlaveNodeName) ->
     end.
 
 slave_call(SlaveNode, Mod, Fun, Args) ->
-    try rpc_call(SlaveNode, Mod, Fun, Args) of
+    try rpc:call(SlaveNode, Mod, Fun, Args) of
+        {badrpc, nodedown} -> {error, slave_down};
+        {badrpc, {'EXIT', {Error, _}}} -> Error;
         Result -> Result
     catch
-        _Class:Error ->
-            {error, Error}
-    end.
-
-rpc_call(Node, Mod, Fun, Args) ->
-    case (catch rpc:call(Node, Mod, Fun, Args)) of
-        {badrpc, {'EXIT', {Error, _}}} -> error(Error);
-        {badrpc, nodedown} -> error(slave_down);
-        Result -> Result
+        error:Error -> Error;
+        _Class:Error -> {error, Error}
     end.
 
 -spec safe(atom(), atom(), atom(), list()) -> term().
