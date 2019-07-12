@@ -727,6 +727,43 @@ stmtGetInfoFail(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_getInfo, [Conn])
     ).
 
+stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
+    [
+        begin
+            Stmt = dpiCall(
+                TestCtx, conn_prepareStmt, 
+                [Conn, false, X, <<>>]
+            ),
+            Map = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
+            ?assert(is_map(Map)),
+            dpiCall(TestCtx, stmt_close, [Stmt, <<>>])
+        end || X <- 
+        [
+            <<"is this the real life, is this just fantasy">>, % UNKNOWN
+            <<"select 2 from dual">>, % SELECT
+            <<"updata a set b = 5 where c = 3">>, % UPDATE
+            <<"AAAAAAAAAAAAAAAAAAAAAAAA">>, % DELETE
+            <<"AAAAAAAAAAAAAAAAAAAAAAAA">>, % INSERT
+            <<"create table a (b int)">>, % CREATE
+            <<"drop table students">>, % DROP
+            <<"alter table a add b int">>, % ALTER
+            <<"begin null end">>, % BEGIN
+            <<"declare mambo number(5)">>, % DECLARE
+            <<"call a.b(c)">>, % CALL
+            <<"MERGE INTO employees e
+                USING hr_records h
+                ON (e.id = h.emp_id)
+                WHEN MATCHED THEN
+                UPDATE SET e.address = h.address
+                WHEN NOT MATCHED THEN
+                INSERT (id, address)
+                VALUES (h.emp_id, h.address);">>, % MERGE
+            <<"EXPLAIN PLAN FOR SELECT b FROM a;">>, % EXPLAIN_PLAN
+            <<"commit">>, % COMMIT
+            <<"rollback">> % ROLLBACK
+        ]
+    ].
+
 stmtGetNumQueryColumns(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt, 
@@ -2446,6 +2483,7 @@ cleanup(_) -> ok.
     ?F(stmtGetInfo),
     ?F(stmtGetInfoBadStmt),
     ?F(stmtGetInfoFail),
+    ?F(stmtGetInfoStmtTypes),
     ?F(stmtGetNumQueryColumns),
     ?F(stmtGetNumQueryColumnsBadStmt),
     ?F(stmtGetNumQueryColumnsFail),
