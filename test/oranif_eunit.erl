@@ -696,6 +696,37 @@ stmtGetQueryInfoFail(#{session := Conn} = TestCtx) ->
     ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
+stmtGetInfo(#{session := Conn} = TestCtx) ->
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1337 from dual">>, <<>>]
+    ),
+    #{
+        isDDL := IsDDL, isDML := IsDML,
+        isPLSQL := IsPLSQL, isQuery := IsQuery,
+        isReturning := IsReturning, statementType := StatementType
+    } = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
+    ?assert(is_atom(IsDDL)),
+    ?assert(is_atom(IsDML)),
+    ?assert(is_atom(IsPLSQL)),
+    ?assert(is_atom(IsQuery)),
+    ?assert(is_atom(IsReturning)),
+    ?assert(is_atom(StatementType)),
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
+
+stmtGetInfoBadStmt(#{session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource statement from arg0",
+        dpiCall(TestCtx, stmt_getInfo, [?BAD_REF])
+    ).
+
+% fails due to the ref being wrong
+stmtGetInfoFail(#{session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource statement from arg0",
+        dpiCall(TestCtx, stmt_getInfo, [Conn])
+    ).
+
 stmtGetNumQueryColumns(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt, 
@@ -2412,6 +2443,9 @@ cleanup(_) -> ok.
     ?F(stmtGetQueryInfoBadStmt),
     ?F(stmtGetQueryInfoBadPos),
     ?F(stmtGetQueryInfoFail),
+    ?F(stmtGetInfo),
+    ?F(stmtGetInfoBadStmt),
+    ?F(stmtGetInfoFail),
     ?F(stmtGetNumQueryColumns),
     ?F(stmtGetNumQueryColumnsBadStmt),
     ?F(stmtGetNumQueryColumnsFail),
