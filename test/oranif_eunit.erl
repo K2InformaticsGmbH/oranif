@@ -730,7 +730,7 @@ stmtGetInfoFail(#{session := Conn} = TestCtx) ->
 stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
 
     lists:foreach(fun({StmtStr, Match}) ->
-        Stmt = dpiCall(TestCtx, conn_prepareStmt,  [Conn, false, StmtStr, <<>>]),
+        Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, StmtStr, <<>>]),
         StmtInfo = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
         dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
         ?assertMatch(#{statementType := Match}, StmtInfo) end, [
