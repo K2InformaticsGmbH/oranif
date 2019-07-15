@@ -2678,3 +2678,6 @@ session_test_() ->
         fun cleanup/1,
         ?W(?AFTER_CONNECTION_TESTS)
     }.
+
+load_test() -> 
+    ?assertEqual(ok, dpi:doTheThing()).

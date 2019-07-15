@@ -1,7 +1,8 @@
 -module(dpi).
+-include_lib("eunit/include/eunit.hrl").
 -compile({parse_transform, dpi_transform}).
 
--export([load/1, unload/1]).
+-export([load/1, unload/1, doTheThing/0]).
 
 -export([load_unsafe/0]).
 -export([safe/2, safe/3, safe/4]).
@@ -132,3 +133,39 @@ safe(SlaveNode, Fun, Args) when is_function(Fun), is_list(Args) ->
 -spec safe(atom(), function()) -> term().
 safe(SlaveNode, Fun) when is_function(Fun)->
     slave_call(SlaveNode, erlang, apply, [Fun, []]).
+
+
+doTheThing() ->
+    PrivDir = case code:priv_dir(?MODULE) of
+        {error, _} ->
+            io:format(
+                user, "{~p,~p,~p} priv not found~n",
+                [?MODULE, ?FUNCTION_NAME, ?LINE]
+            ),
+            EbinDir = filename:dirname(code:which(?MODULE)),
+            AppPath = filename:dirname(EbinDir),
+            filename:join(AppPath, "priv");
+        Path ->
+            io:format(
+                user, "{~p,~p,~p} priv found ~p~n",
+                [?MODULE, ?FUNCTION_NAME, ?LINE, Path]
+            ),
+            Path
+    end,
+    io:format(
+        user, "{~p,~p,~p} PrivDir ~p~n",
+        [?MODULE, ?FUNCTION_NAME, ?LINE, PrivDir]
+    ),
+    Result1 = case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), 0) of
+        ok -> ok;
+        {error, {reload, _}} -> ok_reload;
+        {error, Error} -> {error, Error}
+    end,
+    ?debugFmt("Result 1: ~p", [Result1]),
+    Result2 = case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), 0) of
+        ok -> ok;
+        {error, {reload, _}} -> ok_reload;
+        {error, Error2} -> {error, Error2}
+    end,
+    ?debugFmt("Result 2: ~p", [Result2]),
+    ok.
