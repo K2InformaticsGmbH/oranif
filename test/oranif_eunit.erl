@@ -2578,7 +2578,7 @@ getConfig() ->
 % Unit Tests
 %-------------------------------------------------------------------------------
 
-unsafe_no_context_test_() ->
+unsafe_no_context_test_a() ->
     {
         setup,
         fun() -> setup(#{safe => false}) end,
@@ -2586,7 +2586,7 @@ unsafe_no_context_test_() ->
         ?W(?NO_CONTEXT_TESTS)
     }.
 
-unsafe_context_test_() ->
+unsafe_context_test_a() ->
     {
         setup,
         fun() -> setup_context(#{safe => false}) end,
@@ -2594,7 +2594,7 @@ unsafe_context_test_() ->
         ?W(?AFTER_CONTEXT_TESTS)
     }.
 
-unsafe_session_test_() ->
+unsafe_session_test_a() ->
     {
         setup,
         fun() -> setup_connecion(#{safe => false}) end,
@@ -2602,7 +2602,7 @@ unsafe_session_test_() ->
         ?W(?AFTER_CONNECTION_TESTS)
     }.
 
-no_context_test_() ->
+no_context_test_a() ->
     {
         setup,
         fun() -> setup(#{safe => true}) end,
@@ -2610,7 +2610,7 @@ no_context_test_() ->
         ?W(?NO_CONTEXT_TESTS)
     }.
 
-context_test_() ->
+context_test_a() ->
     {
         setup,
         fun() -> setup_context(#{safe => true}) end,
@@ -2618,7 +2618,7 @@ context_test_() ->
         ?W(?AFTER_CONTEXT_TESTS)
     }.
 
-session_test_() ->
+session_test_a() ->
     {
         setup,
         fun() -> setup_connecion(#{safe => true}) end,
