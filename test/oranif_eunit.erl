@@ -729,34 +729,33 @@ stmtGetInfoFail(#{session := Conn} = TestCtx) ->
 
 stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
 
-    lists:foreach(fun({StmtStr, Match}) ->
-        Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, StmtStr, <<>>]),
-        StmtInfo = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
-        dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-        ?assertMatch(#{statementType := Match}, StmtInfo) end, [
-        {<<"another one bites the dust">>, 'DPI_STMT_TYPE_UNKNOWN'},
-        {<<"select 2 from dual">>, 'DPI_STMT_TYPE_SELECT'},
-        {<<"update a set b = 5 where c = 3">>, 'DPI_STMT_TYPE_UPDATE'},
-        {<<"delete from a where b = 5">>, 'DPI_STMT_TYPE_DELETE'},
-        {<<"insert into a (b) values (5)">>, 'DPI_STMT_TYPE_INSERT'},
-        {<<"create table a (b int)">>, 'DPI_STMT_TYPE_CREATE'},
-        {<<"drop table students">>, 'DPI_STMT_TYPE_DROP'},
-        {<<"alter table a add b int">>, 'DPI_STMT_TYPE_ALTER'},
-        {<<"begin null end">>, 'DPI_STMT_TYPE_BEGIN'},
-        {<<"declare mambo number(5)">>, 'DPI_STMT_TYPE_DECLARE'},
-        {<<"call a.b(c)">>, 'DPI_STMT_TYPE_CALL'},
-        {<<"MERGE INTO employees e
-                USING hr_records h
-                ON (e.id = h.emp_id)
-                WHEN MATCHED THEN
-                UPDATE SET e.address = h.address
-                WHEN NOT MATCHED THEN
-                INSERT (id, address)
-                VALUES (h.emp_id, h.address);">>, 'DPI_STMT_TYPE_MERGE'},
-        {<<"EXPLAIN PLAN FOR SELECT b FROM a;">>, 'DPI_STMT_TYPE_EXPLAIN_PLAN'},
-        {<<"commit">>, 'DPI_STMT_TYPE_COMMIT'},
-        {<<"rollback">>, 'DPI_STMT_TYPE_ROLLBACK'}
-    ]).
+    lists:foreach(
+        fun({Match, StmtStr}) ->
+            Stmt = dpiCall(
+                TestCtx, conn_prepareStmt, [Conn, false, StmtStr, <<>>]
+            ),
+            StmtInfo = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
+            dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
+            ?assertMatch(#{statementType := Match}, StmtInfo) end,
+            [
+                {'DPI_STMT_TYPE_UNKNOWN', <<"another one bites the dust">>},
+                {'DPI_STMT_TYPE_SELECT', <<"select 2 from dual">>},
+                {'DPI_STMT_TYPE_UPDATE', <<"update a set b = 5 where c = 3">>},
+                {'DPI_STMT_TYPE_DELETE', <<"delete from a where b = 5">>},
+                {'DPI_STMT_TYPE_INSERT', <<"insert into a (b) values (5)">>},
+                {'DPI_STMT_TYPE_CREATE', <<"create table a (b int)">>},
+                {'DPI_STMT_TYPE_DROP', <<"drop table students">>},
+                {'DPI_STMT_TYPE_ALTER', <<"alter table a add b int">>},
+                {'DPI_STMT_TYPE_BEGIN', <<"begin null end">>},
+                {'DPI_STMT_TYPE_DECLARE', <<"declare mambo number(5)">>},
+                {'DPI_STMT_TYPE_CALL', <<"call a.b(c)">>},
+                {'DPI_STMT_TYPE_MERGE', <<"MERGE INTO a USING b ON (1 = 1)">>},
+                {'DPI_STMT_TYPE_EXPLAIN_PLAN',
+                    <<"EXPLAIN PLAN FOR SELECT b FROM a;">>},
+                {'DPI_STMT_TYPE_COMMIT', <<"commit">>},
+                {'DPI_STMT_TYPE_ROLLBACK', <<"rollback">>}
+            ]
+        ).
 
 stmtGetNumQueryColumns(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(
