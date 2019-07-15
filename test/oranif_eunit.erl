@@ -741,9 +741,9 @@ stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
         [
             <<"is this the real life, is this just fantasy">>, % UNKNOWN
             <<"select 2 from dual">>, % SELECT
-            <<"updata a set b = 5 where c = 3">>, % UPDATE
-            <<"AAAAAAAAAAAAAAAAAAAAAAAA">>, % DELETE
-            <<"AAAAAAAAAAAAAAAAAAAAAAAA">>, % INSERT
+            <<"update a set b = 5 where c = 3">>, % UPDATE
+            <<"delete from a where b = 5">>, % DELETE
+            <<"insert into a (b) values (5)">>, % INSERT
             <<"create table a (b int)">>, % CREATE
             <<"drop table students">>, % DROP
             <<"alter table a add b int">>, % ALTER
