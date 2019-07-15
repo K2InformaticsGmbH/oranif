@@ -2631,61 +2631,13 @@ getConfig() ->
 % Unit Tests
 %-------------------------------------------------------------------------------
 
-unsafe_no_context_test_a() ->
-    {
-        setup,
-        fun() -> setup(#{safe => false}) end,
-        fun cleanup/1,
-        ?W(?NO_CONTEXT_TESTS)
-    }.
-
-unsafe_context_test_a() ->
-    {
-        setup,
-        fun() -> setup_context(#{safe => false}) end,
-        fun cleanup/1,
-        ?W(?AFTER_CONTEXT_TESTS)
-    }.
-
-unsafe_session_test_a() ->
-    {
-        setup,
-        fun() -> setup_connecion(#{safe => false}) end,
-        fun cleanup/1,
-        ?W(?AFTER_CONNECTION_TESTS)
-    }.
-
-no_context_test_a() ->
-    {
-        setup,
-        fun() -> setup(#{safe => true}) end,
-        fun cleanup/1,
-        ?W(?NO_CONTEXT_TESTS)
-    }.
-
-context_test_a() ->
-    {
-        setup,
-        fun() -> setup_context(#{safe => true}) end,
-        fun cleanup/1,
-        ?W(?AFTER_CONTEXT_TESTS)
-    }.
-
-session_test_a() ->
-    {
-        setup,
-        fun() -> setup_connecion(#{safe => true}) end,
-        fun cleanup/1,
-        ?W(?AFTER_CONNECTION_TESTS)
-    }.
-
 load_test() -> 
     ?assertEqual(ok, dpi:doTheThing()),
-    timer:sleep(100),
+    timer:sleep(100), ?debugFmt("pass: ~p", [1]),
     code:delete(dpi),
-    timer:sleep(100),
+    timer:sleep(100), ?debugFmt("pass: ~p", [2]),
     code:purge(dpi),
-    timer:sleep(100),
+    timer:sleep(100), ?debugFmt("pass: ~p", [3]),
     code:delete(dpi),
     code:delete(dpi),
     code:purge(dpi),
@@ -2698,3 +2650,52 @@ load_test() ->
     code:purge(dpi),
     timer:sleep(100),
     ok.
+
+
+unsafe_no_context_test_() ->
+    {
+        setup,
+        fun() -> setup(#{safe => false}) end,
+        fun cleanup/1,
+        ?W(?NO_CONTEXT_TESTS)
+    }.
+
+unsafe_context_test_() ->
+    {
+        setup,
+        fun() -> setup_context(#{safe => false}) end,
+        fun cleanup/1,
+        ?W(?AFTER_CONTEXT_TESTS)
+    }.
+
+unsafe_session_test_() ->
+    {
+        setup,
+        fun() -> setup_connecion(#{safe => false}) end,
+        fun cleanup/1,
+        ?W(?AFTER_CONNECTION_TESTS)
+    }.
+
+no_context_test_() ->
+    {
+        setup,
+        fun() -> setup(#{safe => true}) end,
+        fun cleanup/1,
+        ?W(?NO_CONTEXT_TESTS)
+    }.
+
+context_test_() ->
+    {
+        setup,
+        fun() -> setup_context(#{safe => true}) end,
+        fun cleanup/1,
+        ?W(?AFTER_CONTEXT_TESTS)
+    }.
+
+session_test_() ->
+    {
+        setup,
+        fun() -> setup_connecion(#{safe => true}) end,
+        fun cleanup/1,
+        ?W(?AFTER_CONNECTION_TESTS)
+    }.
