@@ -2627,4 +2627,14 @@ session_test_() ->
     }.
 
 load_test() -> 
-    ?assertEqual(ok, dpi:doTheThing()).
+    ?assertEqual(ok, dpi:doTheThing()),
+    timer:sleep(100),
+    true == code:purge(dpi),
+     timer:sleep(100),
+    true == code:delete(dpi),
+     timer:sleep(100),
+    code:purge(dpi),
+     timer:sleep(000),
+    code:delete(dpi),
+    timer:sleep(100),
+    ok.

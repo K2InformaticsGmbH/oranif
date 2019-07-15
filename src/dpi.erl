@@ -156,13 +156,14 @@ doTheThing() ->
         user, "{~p,~p,~p} PrivDir ~p~n",
         [?MODULE, ?FUNCTION_NAME, ?LINE, PrivDir]
     ),
-    Result1 = case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), 0) of
+    Result1 = case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), reload) of
         ok -> ok;
         {error, {reload, _}} -> ok_reload;
         {error, Error} -> {error, Error}
     end,
     ?debugFmt("Result 1: ~p", [Result1]),
-    Result2 = case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), 0) of
+  
+    Result2 = case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), 2) of
         ok -> ok;
         {error, {reload, _}} -> ok_reload;
         {error, Error2} -> {error, Error2}

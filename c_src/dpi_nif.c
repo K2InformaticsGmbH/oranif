@@ -91,7 +91,7 @@ ERL_NIF_TERM dpiErrorInfoMap(ErlNifEnv *env, dpiErrorInfo e)
 static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 {
     CALL_TRACE;
-
+    printf("LOAD!\n"); fflush(stdout);
     DEF_RES(dpiContext);
     DEF_RES(dpiConn);
     DEF_RES(dpiStmt);
@@ -115,7 +115,7 @@ static int upgrade(ErlNifEnv *env, void **priv_data,
                    void **old_priv_data, ERL_NIF_TERM load_info)
 {
     CALL_TRACE;
-
+    printf("UPGRADE!\n"); fflush(stdout);
     RETURNED_TRACE;
     return 0;
 }
@@ -123,6 +123,7 @@ static int upgrade(ErlNifEnv *env, void **priv_data,
 static void unload(ErlNifEnv *env, void *priv_data)
 {
     CALL_TRACE;
+    printf("UNLOAD!\n"); fflush(stdout);
     RETURNED_TRACE;
 }
 
