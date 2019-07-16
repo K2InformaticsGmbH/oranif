@@ -751,7 +751,7 @@ stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
                 {'DPI_STMT_TYPE_CALL', <<"call a.b(c)">>},
                 {'DPI_STMT_TYPE_MERGE', <<"MERGE INTO a USING b ON (1 = 1)">>},
                 {'DPI_STMT_TYPE_EXPLAIN_PLAN',
-                    <<"EXPLAIN PLAN FOR SELECT b FROM a;">>},
+                    <<"EXPLAIN">>},
                 {'DPI_STMT_TYPE_COMMIT', <<"commit">>},
                 {'DPI_STMT_TYPE_ROLLBACK', <<"rollback">>}
             ]
