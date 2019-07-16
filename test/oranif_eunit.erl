@@ -706,11 +706,11 @@ stmtGetInfo(#{session := Conn} = TestCtx) ->
         isPLSQL := IsPLSQL, isQuery := IsQuery,
         isReturning := IsReturning, statementType := StatementType
     } = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
-    ?assert(is_atom(IsDDL)),
-    ?assert(is_atom(IsDML)),
-    ?assert(is_atom(IsPLSQL)),
-    ?assert(is_atom(IsQuery)),
-    ?assert(is_atom(IsReturning)),
+    ?assert(is_boolean(IsDDL)),
+    ?assert(is_boolean(IsDML)),
+    ?assert(is_boolean(IsPLSQL)),
+    ?assert(is_boolean(IsQuery)),
+    ?assert(is_boolean(IsReturning)),
     ?assert(is_atom(StatementType)),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
@@ -736,6 +736,12 @@ stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
             ),
             StmtInfo = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
             dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
+            ?assert(is_boolean(maps:get(isDDL, StmtInfo))),
+            ?assert(is_boolean(maps:get(isDML, StmtInfo))),
+            ?assert(is_boolean(maps:get(isPLSQL, StmtInfo))),
+            ?assert(is_boolean(maps:get(isQuery, StmtInfo))),
+            ?assert(is_boolean(maps:get(isReturning, StmtInfo))),
+            ?assert(is_atom(maps:get(statementType, StmtInfo))),
             ?assertMatch(#{statementType := Match}, StmtInfo) end,
             [
                 {'DPI_STMT_TYPE_UNKNOWN', <<"another one bites the dust">>},
@@ -750,8 +756,7 @@ stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
                 {'DPI_STMT_TYPE_DECLARE', <<"declare mambo number(5)">>},
                 {'DPI_STMT_TYPE_CALL', <<"call a.b(c)">>},
                 {'DPI_STMT_TYPE_MERGE', <<"MERGE INTO a USING b ON (1 = 1)">>},
-                {'DPI_STMT_TYPE_EXPLAIN_PLAN',
-                    <<"EXPLAIN">>},
+                {'DPI_STMT_TYPE_EXPLAIN_PLAN', <<"EXPLAIN">>},
                 {'DPI_STMT_TYPE_COMMIT', <<"commit">>},
                 {'DPI_STMT_TYPE_ROLLBACK', <<"rollback">>}
             ]
