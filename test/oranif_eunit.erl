@@ -710,7 +710,6 @@ stmtGetInfoFail(#{session := Conn} = TestCtx) ->
     ).
 
 stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
-
     lists:foreach(
         fun({Match, StmtStr}) ->
             Stmt = dpiCall(
