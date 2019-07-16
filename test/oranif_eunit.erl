@@ -696,24 +696,6 @@ stmtGetQueryInfoFail(#{session := Conn} = TestCtx) ->
     ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-stmtGetInfo(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"select 1337 from dual">>, <<>>]
-    ),
-    #{
-        isDDL := IsDDL, isDML := IsDML,
-        isPLSQL := IsPLSQL, isQuery := IsQuery,
-        isReturning := IsReturning, statementType := StatementType
-    } = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
-    ?assert(is_boolean(IsDDL)),
-    ?assert(is_boolean(IsDML)),
-    ?assert(is_boolean(IsPLSQL)),
-    ?assert(is_boolean(IsQuery)),
-    ?assert(is_boolean(IsReturning)),
-    ?assert(is_atom(StatementType)),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
 stmtGetInfoBadStmt(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource statement from arg0",
@@ -2478,7 +2460,6 @@ cleanup(_) -> ok.
     ?F(stmtGetQueryInfoBadStmt),
     ?F(stmtGetQueryInfoBadPos),
     ?F(stmtGetQueryInfoFail),
-    ?F(stmtGetInfo),
     ?F(stmtGetInfoBadStmt),
     ?F(stmtGetInfoFail),
     ?F(stmtGetInfoStmtTypes),
