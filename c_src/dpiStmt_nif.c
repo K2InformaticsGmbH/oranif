@@ -385,13 +385,11 @@ DPI_NIF_FUN(stmt_getInfo)
         type = enif_make_atom(env, "DPI_STMT_TYPE_ROLLBACK");
         break;
     }
-
     enif_make_map_put(
         env, map, enif_make_atom(env, "statementType"), type, &map);
 
     // #{ isDDL => atom, isDML => atom, isPLSQL => atom, isQuery => atom,
     //    isReturning => atom, statementType => atom }
-
     RETURNED_TRACE;
     return map;
 }

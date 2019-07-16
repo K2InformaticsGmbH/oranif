@@ -709,6 +709,24 @@ stmtGetInfoFail(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_getInfo, [Conn])
     ).
 
+stmtGetInfo(#{session := Conn} = TestCtx) ->
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1337 from dual">>, <<>>]
+    ),
+    #{
+        isDDL := IsDDL, isDML := IsDML,
+        isPLSQL := IsPLSQL, isQuery := IsQuery,
+        isReturning := IsReturning, statementType := StatementType
+    } = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
+    ?assert(is_boolean(IsDDL)),
+    ?assert(is_boolean(IsDML)),
+    ?assert(is_boolean(IsPLSQL)),
+    ?assert(is_boolean(IsQuery)),
+    ?assert(is_boolean(IsReturning)),
+    ?assert(is_atom(StatementType)),
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
+
 stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
 
     lists:foreach(
@@ -716,15 +734,18 @@ stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
             Stmt = dpiCall(
                 TestCtx, conn_prepareStmt, [Conn, false, StmtStr, <<>>]
             ),
-            StmtInfo = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
+            #{
+                isDDL := IsDDL, isDML := IsDML,
+                isPLSQL := IsPLSQL, isQuery := IsQuery,
+                isReturning := IsReturning, statementType := StatementType
+            } = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
             dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-            ?assert(is_boolean(maps:get(isDDL, StmtInfo))),
-            ?assert(is_boolean(maps:get(isDML, StmtInfo))),
-            ?assert(is_boolean(maps:get(isPLSQL, StmtInfo))),
-            ?assert(is_boolean(maps:get(isQuery, StmtInfo))),
-            ?assert(is_boolean(maps:get(isReturning, StmtInfo))),
-            ?assert(is_atom(maps:get(statementType, StmtInfo))),
-            ?assertMatch(#{statementType := Match}, StmtInfo) end,
+            ?assert(is_boolean(IsDDL)),
+            ?assert(is_boolean(IsDML)),
+            ?assert(is_boolean(IsPLSQL)),
+            ?assert(is_boolean(IsQuery)),
+            ?assert(is_boolean(IsReturning)),
+            ?assertEqual(Match, StatementType) end,
             [
                 {'DPI_STMT_TYPE_UNKNOWN', <<"another one bites the dust">>},
                 {'DPI_STMT_TYPE_SELECT', <<"select 2 from dual">>},
