@@ -709,24 +709,6 @@ stmtGetInfoFail(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_getInfo, [Conn])
     ).
 
-stmtGetInfo(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"select 1337 from dual">>, <<>>]
-    ),
-    #{
-        isDDL := IsDDL, isDML := IsDML,
-        isPLSQL := IsPLSQL, isQuery := IsQuery,
-        isReturning := IsReturning, statementType := StatementType
-    } = dpiCall(TestCtx, stmt_getInfo, [Stmt]),
-    ?assert(is_boolean(IsDDL)),
-    ?assert(is_boolean(IsDML)),
-    ?assert(is_boolean(IsPLSQL)),
-    ?assert(is_boolean(IsQuery)),
-    ?assert(is_boolean(IsReturning)),
-    ?assert(is_atom(StatementType)),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
 stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
 
     lists:foreach(
