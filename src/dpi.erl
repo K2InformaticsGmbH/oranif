@@ -2,7 +2,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -compile({parse_transform, dpi_transform}).
 
--export([load/1, unload/1, reloadTest/0]).
+-export([load/1, unload/1]).
 
 -export([load_unsafe/0]).
 -export([safe/2, safe/3, safe/4]).
@@ -133,24 +133,3 @@ safe(SlaveNode, Fun, Args) when is_function(Fun), is_list(Args) ->
 -spec safe(atom(), function()) -> term().
 safe(SlaveNode, Fun) when is_function(Fun)->
     slave_call(SlaveNode, erlang, apply, [Fun, []]).
-
-
-reloadTest() ->
-    PrivDir = case code:priv_dir(?MODULE) of
-        {error, _} ->
-            io:format(
-                user, "{~p,~p,~p} priv not found~n",
-                [?MODULE, ?FUNCTION_NAME, ?LINE]
-            ),
-            EbinDir = filename:dirname(code:which(?MODULE)),
-            AppPath = filename:dirname(EbinDir),
-            filename:join(AppPath, "priv");
-        Path ->
-            io:format(
-                user, "{~p,~p,~p} priv found ~p~n",
-                [?MODULE, ?FUNCTION_NAME, ?LINE, Path]
-            ),
-            Path
-    end,
-    erlang:load_nif(filename:join(PrivDir, "dpi_nif"), upgrade),
-    ok.
