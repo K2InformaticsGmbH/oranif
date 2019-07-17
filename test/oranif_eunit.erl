@@ -2579,9 +2579,9 @@ getConfig() ->
 %-------------------------------------------------------------------------------
 
 load_test() -> 
-    ?assertEqual(ok, dpi:reloadTest()),
+    ?assertEqual(ok, dpi:load_unsafe()),
     c:c(dpi),
-    ?assertEqual(ok, dpi:reloadTest()),
+    ?assertEqual(ok, dpi:load_unsafe()),
     % at this point, both old and current dpi code might be "bad"
 
     % delete the old code
