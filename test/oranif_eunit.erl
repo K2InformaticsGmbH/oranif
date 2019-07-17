@@ -2633,6 +2633,8 @@ getConfig() ->
 
 load_test() -> 
     ?assertEqual(ok, dpi:doTheThing()),
+    c:c(dpi),
+    ?assertEqual(ok, dpi:doTheThing()),
     timer:sleep(100), ?debugFmt("pass: ~p", [1]),
     code:delete(dpi),
     timer:sleep(100), ?debugFmt("pass: ~p", [2]),
@@ -2642,12 +2644,20 @@ load_test() ->
     code:delete(dpi),
     code:purge(dpi),
     code:purge(dpi),
+    ResultL = code:load_file(dpi),
+    ?debugFmt("Result load: ~p", [ResultL]),
+    ResultL2 = code:load_file(dpi),
+    ?debugFmt("Result load: ~p", [ResultL2]),
     PurgeRes = code:purge(dpi),
     timer:sleep(100),
     DeleteRes = code:delete(dpi),
     ?debugFmt("Purge result: ~p", [PurgeRes]),
     ?debugFmt("Delete result: ~p", [DeleteRes]),
     code:purge(dpi),
+    ResultL3 = code:load_file(dpi),
+    ?debugFmt("Result load: ~p", [ResultL3]),
+    ResultL4 = code:load_file(dpi),
+    ?debugFmt("Result load: ~p", [ResultL4]),
     timer:sleep(100),
     ok.
 
