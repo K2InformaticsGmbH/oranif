@@ -2609,7 +2609,7 @@ load_test() ->
     ok.
 
 
-unsafe_no_context_test_a() ->
+unsafe_no_context_test_() ->
     {
         setup,
         fun() -> setup(#{safe => false}) end,
@@ -2617,7 +2617,7 @@ unsafe_no_context_test_a() ->
         ?W(?NO_CONTEXT_TESTS)
     }.
 
-unsafe_context_test_a() ->
+unsafe_context_test_() ->
     {
         setup,
         fun() -> setup_context(#{safe => false}) end,
@@ -2625,7 +2625,7 @@ unsafe_context_test_a() ->
         ?W(?AFTER_CONTEXT_TESTS)
     }.
 
-unsafe_session_test_a() ->
+unsafe_session_test_() ->
     {
         setup,
         fun() -> setup_connecion(#{safe => false}) end,
@@ -2633,7 +2633,7 @@ unsafe_session_test_a() ->
         ?W(?AFTER_CONNECTION_TESTS)
     }.
 
-no_context_test_a() ->
+no_context_test_() ->
     {
         setup,
         fun() -> setup(#{safe => true}) end,
@@ -2641,7 +2641,7 @@ no_context_test_a() ->
         ?W(?NO_CONTEXT_TESTS)
     }.
 
-context_test_a() ->
+context_test_() ->
     {
         setup,
         fun() -> setup_context(#{safe => true}) end,
@@ -2649,7 +2649,7 @@ context_test_a() ->
         ?W(?AFTER_CONTEXT_TESTS)
     }.
 
-session_test_a() ->
+session_test_() ->
     {
         setup,
         fun() -> setup_connecion(#{safe => true}) end,
