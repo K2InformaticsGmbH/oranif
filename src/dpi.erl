@@ -2,7 +2,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -compile({parse_transform, dpi_transform}).
 
--export([load/1, unload/1, doTheThing/0]).
+-export([load/1, unload/1, reloadTest/0]).
 
 -export([load_unsafe/0]).
 -export([safe/2, safe/3, safe/4]).
@@ -135,7 +135,7 @@ safe(SlaveNode, Fun) when is_function(Fun)->
     slave_call(SlaveNode, erlang, apply, [Fun, []]).
 
 
-doTheThing() ->
+reloadTest() ->
     PrivDir = case code:priv_dir(?MODULE) of
         {error, _} ->
             io:format(
@@ -152,29 +152,5 @@ doTheThing() ->
             ),
             Path
     end,
-    io:format(
-        user, "{~p,~p,~p} PrivDir ~p~n",
-        [?MODULE, ?FUNCTION_NAME, ?LINE, PrivDir]
-    ),
-    Result1 = case erlang:load_nif(filename:join(PrivDir, "../bad_nif"), upgrade) of
-        ok -> ok;
-        ReloadError1 -> ReloadError1;
-        {error, Error} -> {error, Error}
-    end,
-    ?debugFmt("Result 1: ~p", [Result1]),
-    Result1a = case erlang:load_nif(filename:join(PrivDir, "../bad_nif"), upgrade) of
-        ok -> ok;
-        ReloadError2 -> ReloadError2;
-        {error, Error1a} -> {error, Error1a}
-    end,
-    ?debugFmt("Result 1a: ~p", [Result1a]),
-    %c:c(dpi),
-    Result2 = case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), upgrade) of
-        ok -> ok;
-        ReloadError -> ReloadError;
-        {error, Error2} -> {error, Error2}
-    end,
-    
-    ?debugFmt("Result 2: ~p", [Result2]),
-
+    erlang:load_nif(filename:join(PrivDir, "dpi_nif"), upgrade),
     ok.

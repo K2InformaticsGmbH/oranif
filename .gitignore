@@ -32,6 +32,3 @@ ebin/
 *.gcov
 *.gcda
 *.gcno
-
-# "different" NIF. Not intended to do anything practical, only load/unload/upgrade testing. Only the freshly compiled NIF code should actually be called.
-!bad_nif.dll
