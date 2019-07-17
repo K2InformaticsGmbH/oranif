@@ -2632,36 +2632,22 @@ getConfig() ->
 %-------------------------------------------------------------------------------
 
 load_test() -> 
-    ?assertEqual(ok, dpi:doTheThing()),
+    ?assertEqual(ok, dpi:reloadTest()),
     c:c(dpi),
-    ?assertEqual(ok, dpi:doTheThing()),
-    timer:sleep(100), ?debugFmt("pass: ~p", [1]),
-    code:delete(dpi),
-    timer:sleep(100), ?debugFmt("pass: ~p", [2]),
-    code:purge(dpi),
-    timer:sleep(100), ?debugFmt("pass: ~p", [3]),
-    code:delete(dpi),
-    code:delete(dpi),
-    code:purge(dpi),
-    code:purge(dpi),
-    ResultL = code:load_file(dpi),
-    ?debugFmt("Result load: ~p", [ResultL]),
-    ResultL2 = code:load_file(dpi),
-    ?debugFmt("Result load: ~p", [ResultL2]),
-    PurgeRes = code:purge(dpi),
-    timer:sleep(100),
-    DeleteRes = code:delete(dpi),
-    ?debugFmt("Purge result: ~p", [PurgeRes]),
-    ?debugFmt("Delete result: ~p", [DeleteRes]),
-    code:purge(dpi),
-    ResultL3 = code:load_file(dpi),
-    ?debugFmt("Result load: ~p", [ResultL3]),
-    ResultL4 = code:load_file(dpi),
-    ?debugFmt("Result load: ~p", [ResultL4]),
-    timer:sleep(100),
-    ok.
+    ?assertEqual(ok, dpi:reloadTest()),
+    % at this point, both old and current dpi code might be "bad"
 
+    % delete the old code
+    code:purge(dpi),
+    
+    % make the new code old
+    code:delete(dpi),
 
+    %delete that old code, too. Now all the code is gone
+    code:purge(dpi).
+
+-define(include_tests, yes).
+-ifdef (include_tests).
 unsafe_no_context_test_() ->
     {
         setup,
@@ -2709,3 +2695,4 @@ session_test_() ->
         fun cleanup/1,
         ?W(?AFTER_CONNECTION_TESTS)
     }.
+-endif.
