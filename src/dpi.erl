@@ -1,5 +1,4 @@
 -module(dpi).
--include_lib("eunit/include/eunit.hrl").
 -compile({parse_transform, dpi_transform}).
 
 -export([load/1, unload/1]).
