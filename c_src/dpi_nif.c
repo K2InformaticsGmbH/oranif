@@ -91,7 +91,7 @@ ERL_NIF_TERM dpiErrorInfoMap(ErlNifEnv *env, dpiErrorInfo e)
 static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 {
     CALL_TRACE;
-    
+
     DEF_RES(dpiContext);
     DEF_RES(dpiConn);
     DEF_RES(dpiStmt);
