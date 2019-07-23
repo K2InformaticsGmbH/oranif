@@ -1,10 +1,9 @@
 -module(dpi_eunit).
 -include_lib("eunit/include/eunit.hrl").
 
-
 load_test() -> 
     ?assertEqual(ok, dpi:load_unsafe()),
-    c:c(dpi),
+    compile:file(dpi),
     ?assertEqual(ok, dpi:load_unsafe()),
     % at this point, both old and current dpi code might be "bad"
 
