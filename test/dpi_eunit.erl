@@ -10,8 +10,9 @@ load_test() ->
     % at this point, both old and current dpi code might be "bad"
 
     % delete the old code
+    ?debugMsg("triggering unload callback"),
     code:purge(dpi),
-    
+
     % make the new code old
     code:delete(dpi),
 
