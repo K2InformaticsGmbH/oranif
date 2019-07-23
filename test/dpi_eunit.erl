@@ -3,7 +3,7 @@
 
 load_test() -> 
     ?assertEqual(ok, dpi:load_unsafe()),
-    compile:file(dpi),
+    c:c(dpi),
     ?assertEqual(ok, dpi:load_unsafe()),
     % at this point, both old and current dpi code might be "bad"
 
