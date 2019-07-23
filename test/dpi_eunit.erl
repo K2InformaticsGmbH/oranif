@@ -4,6 +4,8 @@
 load_test() -> 
     ?assertEqual(ok, dpi:load_unsafe()),
     c:c(dpi),
+
+    %load dpi again, triggering the upgrade when the NIF is loaded
     ?assertEqual(ok, dpi:load_unsafe()),
     % at this point, both old and current dpi code might be "bad"
 

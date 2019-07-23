@@ -2631,8 +2631,6 @@ getConfig() ->
 % Unit Tests
 %-------------------------------------------------------------------------------
 
--define(include_tests, yes).
--ifdef (include_tests).
 unsafe_no_context_test_() ->
     {
         setup,
@@ -2680,4 +2678,3 @@ session_test_() ->
         fun cleanup/1,
         ?W(?AFTER_CONNECTION_TESTS)
     }.
--endif.
