@@ -390,6 +390,21 @@ DPI_NIF_FUN(data_get)
         dataRet = enif_make_resource(env, stmtRes);
     }
     break;
+    case DPI_NATIVE_TYPE_ROWID:
+    {
+        ErlNifBinary bin;
+        dpiRowid* rowid = data->value.asRowid;
+        const char* string;
+        uint32_t stringlen; 
+        printf("passing!\n"); fflush(stdout);
+        if (!dpiRowid_getStringValue(rowid, &string, &stringlen))
+            RAISE_STR_EXCEPTION("dpiRowid_getStringValue issue");
+        printf("stringlen %d\n", stringlen); fflush(stdout);
+        enif_alloc_binary(stringlen, &bin);
+        memcpy(bin.data, string, stringlen);
+        dataRet = enif_make_binary(env, &bin);
+    }
+    break;
     default:
         RAISE_STR_EXCEPTION("Unsupported nativeTypeNum");
     }

@@ -2064,6 +2064,29 @@ dataGetBinary(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     dpiCall(TestCtx, var_release, [Var]).
 
+dataGetRowid(#{session := Conn} = TestCtx) ->
+    ?EXEC_STMT(Conn, <<"create table test_dpi_x (a int)">>), 
+    ?EXEC_STMT(Conn, <<"insert into test_dpi_x values (1)">>), 
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select rowid from test_dpi_x">>, <<>>]
+    ),
+    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
+    dpiCall(TestCtx, stmt_fetch, [Stmt]),
+    #{var := Var, data := [Data]} = dpiCall(
+        TestCtx, conn_newVar, [
+            Conn, 'DPI_ORACLE_TYPE_ROWID', 'DPI_NATIVE_TYPE_ROWID', 1, 0,
+            false, false, null
+        ]
+    ),
+    ok = dpiCall(TestCtx, stmt_getRowidIntoData, [Stmt, 1, Data]),
+    dpiCall(TestCtx, data_setIsNull, [Data, false]),
+    ?assert(is_binary(dpiCall(TestCtx, data_get, [Data]))),
+    dpiCall(TestCtx, data_release, [Data]),
+    dpiCall(TestCtx, var_release, [Var]),
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
+    ?EXEC_STMT(Conn, <<"drop table test_dpi_x">>).
+
 dataGetTimestamp(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
         TestCtx, conn_newVar, [
@@ -2574,6 +2597,7 @@ cleanup(_) -> ok.
     ?F(dataGetFloat),
     ?F(dataGetDouble),
     ?F(dataGetBinary),
+    ?F(dataGetRowid),
     ?F(dataGetTimestamp),
     ?F(dataGetIntervalDS),
     ?F(dataGetIntervalYM),

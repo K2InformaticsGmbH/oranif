@@ -126,6 +126,34 @@ DPI_NIF_FUN(stmt_getQueryValue)
     return map;
 }
 
+DPI_NIF_FUN(stmt_getRowidIntoData)
+{
+    CHECK_ARGCOUNT(3);
+
+    dpiStmt_res *stmtRes;
+    dpiDataPtr_res *data;
+    uint32_t pos = 0;
+    dpiNativeTypeNum nativeTypeNum = 0;
+
+    if (!enif_get_resource(env, argv[0], dpiStmt_type, (void **)&stmtRes))
+        BADARG_EXCEPTION(0, "resource statement");
+
+    if (!enif_get_uint(env, argv[1], &pos))
+        BADARG_EXCEPTION(1, "uint pos");
+
+    if (!enif_get_resource(env, argv[2], dpiDataPtr_type, (void **)&data))
+        BADARG_EXCEPTION(2, "resource data ptr");
+
+    RAISE_EXCEPTION_ON_DPI_ERROR(
+        stmtRes->context,
+        dpiStmt_getQueryValue(
+            stmtRes->stmt, pos, &nativeTypeNum, &(data->dpiDataPtr)),
+        data);
+
+    RETURNED_TRACE;
+    return ATOM_OK;
+}
+
 DPI_NIF_FUN(stmt_getQueryInfo)
 {
     CHECK_ARGCOUNT(2);
