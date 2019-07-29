@@ -611,7 +611,6 @@ stmtFetchBadRes(#{session := Conn} = TestCtx) ->
         "Unable to retrieve resource statement from arg0",
         dpiCall(TestCtx, stmt_fetch, [Conn])
     ).
-
 stmtGetQueryValue(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt, 
@@ -642,6 +641,70 @@ stmtGetQueryValueBadPos(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, stmt_getQueryValue, [Stmt, ?BAD_INT])
     ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
+
+stmtGetRowidIntoData(#{session := Conn} = TestCtx) ->
+    ?EXEC_STMT(Conn, <<"create table test_dpi_x (a int)">>), 
+    ?EXEC_STMT(Conn, <<"insert into test_dpi_x values (1)">>), 
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select rowid from test_dpi_x">>, <<>>]
+    ),
+    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
+    dpiCall(TestCtx, stmt_fetch, [Stmt]),
+    #{var := Var, data := [Data]} = dpiCall(
+        TestCtx, conn_newVar, [
+            Conn, 'DPI_ORACLE_TYPE_ROWID', 'DPI_NATIVE_TYPE_ROWID', 1, 0,
+            false, false, null
+        ]
+    ),
+    ?assertEqual(ok,
+        dpiCall(
+            TestCtx, stmt_getRowidIntoData, [Stmt, 1, Data]
+        )
+    ),
+    dpiCall(TestCtx, data_release, [Data]),
+    dpiCall(TestCtx, var_release, [Var]),
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
+    ?EXEC_STMT(Conn, <<"drop table test_dpi_x">>).
+
+stmtGetRowidIntoDataBadStmt(TestCtx) ->
+    Data = dpiCall(TestCtx, data_ctor, []),
+    ?ASSERT_EX(
+        "Unable to retrieve resource statement from arg0",
+        dpiCall(TestCtx, stmt_getRowidIntoData, [?BAD_REF, 1, Data])
+    ),
+    dpiCall(TestCtx, data_release, [Data]).
+
+stmtGetRowidIntoDataBadPos(#{session := Conn} = TestCtx) ->
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1337 from dual">>, <<>>]
+    ),
+    Data = dpiCall(TestCtx, data_ctor, []),
+    ?ASSERT_EX(
+        "Unable to retrieve uint pos from arg1",
+        dpiCall(TestCtx, stmt_getRowidIntoData, [Stmt, ?BAD_INT, Data])
+    ),
+    dpiCall(TestCtx, data_release, [Data]),
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
+
+stmtGetRowidIntoDataBadData(#{session := Conn} = TestCtx) ->
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt, 
+        [Conn, false, <<"select 1337 from dual">>, <<>>]
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve resource data ptr from arg2",
+        dpiCall(TestCtx, stmt_getRowidIntoData, [Stmt, 1, ?BAD_REF])
+    ),
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
+
+% fails due to passing an invalid pos
+stmtGetRowidIntoDataFail(#{session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource statement from arg0",
+        dpiCall(TestCtx, stmt_getRowidIntoData, [Conn, 1, Conn])
+    ).
 
 % fails due to the fetch not being done
 stmtGetQueryValueFail(#{session := Conn} = TestCtx) ->
@@ -2481,6 +2544,11 @@ cleanup(_) -> ok.
     ?F(stmtGetQueryValueBadStmt),
     ?F(stmtGetQueryValueBadPos),
     ?F(stmtGetQueryValueFail),
+    ?F(stmtGetRowidIntoData),
+    ?F(stmtGetRowidIntoDataBadStmt),
+    ?F(stmtGetRowidIntoDataBadPos),
+    ?F(stmtGetRowidIntoDataBadData),
+    ?F(stmtGetRowidIntoDataFail),
     ?F(stmtGetQueryInfo),
     ?F(stmtGetQueryInfoBadStmt),
     ?F(stmtGetQueryInfoBadPos),
