@@ -399,7 +399,6 @@ DPI_NIF_FUN(data_get)
         printf("passing!\n"); fflush(stdout);
         if (dpiRowid_getStringValue(rowid, &string, &stringlen))
             RAISE_STR_EXCEPTION("dpiRowid_getStringValue issue");
-        printf("stringlen %d\n", stringlen); fflush(stdout);
         enif_alloc_binary(stringlen, &bin);
         memcpy(bin.data, string, stringlen);
         dataRet = enif_make_binary(env, &bin);
