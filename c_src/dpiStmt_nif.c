@@ -137,10 +137,8 @@ DPI_NIF_FUN(stmt_getRowidIntoData)
 
     if (!enif_get_resource(env, argv[0], dpiStmt_type, (void **)&stmtRes))
         BADARG_EXCEPTION(0, "resource statement");
-
     if (!enif_get_uint(env, argv[1], &pos))
         BADARG_EXCEPTION(1, "uint pos");
-
     if (!enif_get_resource(env, argv[2], dpiDataPtr_type, (void **)&data))
         BADARG_EXCEPTION(2, "resource data ptr");
 
@@ -148,7 +146,8 @@ DPI_NIF_FUN(stmt_getRowidIntoData)
         stmtRes->context,
         dpiStmt_getQueryValue(
             stmtRes->stmt, pos, &nativeTypeNum, &(data->dpiDataPtr)),
-        data);
+        data
+    );
 
     RETURNED_TRACE;
     return ATOM_OK;
