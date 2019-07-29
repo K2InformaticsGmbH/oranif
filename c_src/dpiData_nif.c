@@ -396,8 +396,7 @@ DPI_NIF_FUN(data_get)
         dpiRowid* rowid = data->value.asRowid;
         const char* string;
         uint32_t stringlen; 
-        if (dpiRowid_getStringValue(rowid, &string, &stringlen))
-            RAISE_STR_EXCEPTION("dpiRowid_getStringValue issue");
+        dpiRowid_getStringValue(rowid, &string, &stringlen);
         enif_alloc_binary(stringlen, &bin);
         memcpy(bin.data, string, stringlen);
         dataRet = enif_make_binary(env, &bin);
