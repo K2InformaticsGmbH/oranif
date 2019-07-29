@@ -611,6 +611,7 @@ stmtFetchBadRes(#{session := Conn} = TestCtx) ->
         "Unable to retrieve resource statement from arg0",
         dpiCall(TestCtx, stmt_fetch, [Conn])
     ).
+
 stmtGetQueryValue(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt, 
