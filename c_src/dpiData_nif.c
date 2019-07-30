@@ -392,16 +392,14 @@ DPI_NIF_FUN(data_get)
     break;
     case DPI_NATIVE_TYPE_ROWID:
     {
-        ErlNifBinary bin;
-        dpiRowid* rowid = data->value.asRowid;
         const char* string;
         uint32_t stringlen; 
         RAISE_EXCEPTION_ON_DPI_ERROR(
             dataRes->context,
-            dpiRowid_getStringValue(rowid, &string, &stringlen),
+            dpiRowid_getStringValue(data->value.asRowid, &string, &stringlen),
             NULL
         );
-        
+        ErlNifBinary bin;
         enif_alloc_binary(stringlen, &bin);
         memcpy(bin.data, string, stringlen);
         dataRet = enif_make_binary(env, &bin);
