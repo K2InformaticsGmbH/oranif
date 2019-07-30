@@ -2065,19 +2065,16 @@ dataGetBinary(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, var_release, [Var]).
 
 dataGetRowid(#{session := Conn} = TestCtx) ->
-    ?EXEC_STMT(Conn, <<"create table test_dpi_x (a int)">>), 
-    ?EXEC_STMT(Conn, <<"insert into test_dpi_x values (1)">>), 
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt,
-        [Conn, false, <<"select rowid from test_dpi_x">>, <<>>]
+        [Conn, false, <<"select rowid from dual">>, <<>>]
     ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     dpiCall(TestCtx, stmt_fetch, [Stmt]),
     #{data := Data} = dpiCall(TestCtx, stmt_getQueryValue, [Stmt, 1]),
     ?assert(is_binary(dpiCall(TestCtx, data_get, [Data]))),
     dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi_x">>).
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 dataGetTimestamp(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
