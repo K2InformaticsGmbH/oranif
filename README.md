@@ -35,6 +35,17 @@ $ export OTP_ERTS_DIR=/usr/lib/erlang/erts-10.4.4/
 $ export LD_LIBRARY_PATH=/mnt/c/projects/git/K2InformaticsGmbH/oranif/c_src/odpi/lib/
 $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/oracle/19.3/client64/lib/ # or `sudo ldconfig`
 ```
+#### code coverage setup (first time)
+```sh
+$ wget http://ftp.de.debian.org/debian/pool/main/l/lcov/lcov_1.11.orig.tar.gz
+$ tar xf lcov_1.11.orig.tar.gz
+$ sudo make -C lcov-1.11/ install
+```
+#### code coverage report
+```sh
+lcov --directory . --capture --output-file coverage.info
+lcov --list coverage.info
+```
 
 #### Create Environment variables
 ```
