@@ -69,7 +69,7 @@ DPI_NIF_FUN(stmt_executeMany)
         enif_get_list_cell(env, argv[1], &head, &tail);
 
     if (!enif_get_uint(env, argv[2], &numIters))
-        BADARG_EXCEPTION(1, "unit32 numIters");
+        BADARG_EXCEPTION(2, "uint32 numIters");
 
     dpiExecMode m = 0, mode = 0;
     if (len > 0)
