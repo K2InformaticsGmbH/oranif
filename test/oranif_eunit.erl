@@ -531,6 +531,10 @@ connSetClientIdentifierBadValue(#{session := Conn} = TestCtx) ->
 %-------------------------------------------------------------------------------
 
 stmtExecuteMany(#{session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource statement from arg0",
+        dpiCall(TestCtx, stmt_executeMany, [?BAD_REF, [], 0])
+    ),
     StmtDrop = dpiCall(
         TestCtx, conn_prepareStmt, 
         [Conn, false, <<"drop table oranif_test">>, <<>>]
@@ -546,6 +550,18 @@ stmtExecuteMany(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt, 
         [Conn, false, <<"insert into oranif_test values(:col1)">>, <<>>]
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve list of atoms from arg1",
+        dpiCall(TestCtx, stmt_executeMany, [Stmt, badList, 0])
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve uint32 numIters from arg2",
+        dpiCall(TestCtx, stmt_executeMany, [Stmt, [], ?BAD_INT])
+    ),
+    ?ASSERT_EX(
+        "mode must be a list of atoms",
+        dpiCall(TestCtx, stmt_executeMany, [Stmt, ["badAtom"], 0])
     ),
     #{var := Var, data := DataList} = dpiCall(
         TestCtx, conn_newVar,
