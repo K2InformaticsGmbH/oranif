@@ -17,7 +17,7 @@ INCLUDEDIRS = -I$(S) -I"$(OTP_ERTS_DIR)/include" -I"$(S)/odpi/include"
 CFLAGS = $(INCLUDEDIRS) -O2 -ggdb -Wall -fPIC -std=c11
 LDFLAGS = -shared
 
-ifdef LINK
+ifdef LINKODPI
 LDFLAGS = -L$(ODPI_LIB_DIR) -shared -lodpic
 else
 CFLAGS += -DEMBED
@@ -40,7 +40,7 @@ odpi:
 	@if [ ! -d "$(ODPIROOT)" ]; then \
 		cd $(S) && (git clone -b v3.0.0 --single-branch $(ODPI_REPO)) \
 	fi
-	@if [ ! -z "${LINK}" -a ! -d "$(ODPI_LIB_DIR)" ]; then \
+	@if [ ! -z "${LINKODPI}" -a ! -d "$(ODPI_LIB_DIR)" ]; then \
 		cd $(ODPIROOT) && (make) \
 	fi
 

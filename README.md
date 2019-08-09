@@ -15,7 +15,7 @@ Currently builds in Window, Linux and OS X
 rebar3 compile
 # link with compiled odpic library
 # (c_src/odpi/lib/ needed at runtime for NIF load)
-LINK=true rebar3 compile
+LINKODPI=true rebar3 compile
 ORANIF_DEBUG=_verbosity_ rebar3 compile # debug log verbosity >= 1
 # see dpi_nif.h for ORANIF_DEBUG values and debug log granularities
 ```
