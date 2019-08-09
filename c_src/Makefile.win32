@@ -13,10 +13,10 @@ CFLAGS = /nologo /c /MT
 INCLUDE_PATHS = /I$S /I"$(OTPROOT)\erts-9.2\include" /I"$S\odpi\include"
 LDFLAGS = /nologo 
 
-!IFDEF EMBEDED
-CFLAGS = $(CFLAGS) /DEMBED
-!ELSE
+!IFDEF LINK
 LDFLAGS = $(LDFLAGS) $L
+!ELSE
+CFLAGS = $(CFLAGS) /DEMBED
 !ENDIF
 
 !IFDEF ORANIF_DEBUG
@@ -56,12 +56,12 @@ odpi:
     cd c_src && git clone -b v3.0.0 --single-branch https://github.com/K2InformaticsGmbH/odpi
     @RD /S /Q c_src\odpi\.git 2>nul || rem
 !ENDIF
-!IF !DEFINED(EMBEDED) && !EXISTS($L)
+!IF DEFINED(LINK) && !EXISTS($L)
     cd c_src/odpi && nmake -F Makefile.win32
-!ELSEIF !DEFINED(EMBEDED)
+!ELSEIF DEFINED(LINK)
     @ECHO "===> odpi already built"
 !ELSE
-    @ECHO "===> odpi embeded build"
+    @ECHO "===> odpi embeded"
 !ENDIF
 
 clean:
