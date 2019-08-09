@@ -1,12 +1,9 @@
 O = priv
 S = c_src
-T = test
 L = $S\odpi\lib\odpic.lib
 
 OBJS = $O\dpi_nif.obj $O\dpiContext_nif.obj $O\dpiConn_nif.obj $O\dpiStmt_nif.obj $O\dpiData_nif.obj $O\dpiQueryInfo_nif.obj $O\dpiVar_nif.obj
 TARGETS = $O\dpi_nif.dll
-
-TEST_OBJS = test\odpi_test.obj
 
 CFLAGS = /nologo /c /MT
 # CFLAGS = $(CFLAGS) /Wall /WX
@@ -27,9 +24,6 @@ all : priv $(TARGETS) cleanup
 
 $(TARGETS) : odpi $(OBJS)
 
-{$T}.c{$T}.obj::
-    cl $(CFLAGS) /Fo$T\ $(INCLUDE_PATHS) $<
-
 {$S}.c{$O}.obj::
     cl $(CFLAGS) /Fo$O\ $(INCLUDE_PATHS) $<
 
@@ -39,11 +33,6 @@ priv:
 !ENDIF
 
 $(OBJS) :
-
-$(TEST_OBJS) :
-
-{$T}.obj{$T}.exe:
-    link $(LDFLAGS) $T\*.obj /out:$@
 
 {$O}.obj{$O}.dll:
     link $(LDFLAGS) /dll $O\*.obj /out:$@
@@ -67,16 +56,8 @@ clean:
     @if exist $O\*.lib del /F /Q $O\*.lib
     @if exist $O\*.exe del /F /Q $O\*.exe
     @if exist $O\*.dll del /F /Q $O\*.dll
-    @if exist $T\*.obj del /F /Q $T\*.obj
-    @if exist $T\*.exp del /F /Q $T\*.exp
-    @if exist $T\*.lib del /F /Q $T\*.lib
-    @if exist $T\*.exe del /F /Q $T\*.exe
-    @if exist $T\*.dll del /F /Q $T\*.dll
 
 cleanup:
     @if exist $O\*.obj del /F /Q $O\*.obj
     @if exist $O\*.exp del /F /Q $O\*.exp
     @if exist $O\*.lib del /F /Q $O\*.lib
-    @if exist $T\*.obj del /F /Q $T\*.obj
-    @if exist $T\*.exp del /F /Q $T\*.exp
-    @if exist $T\*.lib del /F /Q $T\*.lib

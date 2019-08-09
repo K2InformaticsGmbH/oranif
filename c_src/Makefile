@@ -1,6 +1,5 @@
 O = priv
 S = c_src
-T = test
 ODPI_REPO = https://github.com/K2InformaticsGmbH/odpi
 
 ifndef OTP_ERTS_DIR
