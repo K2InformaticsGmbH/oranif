@@ -1,9 +1,8 @@
+#include "dpiVar_nif.h"
 #include "dpiStmt_nif.h"
 #include "dpiConn_nif.h"
-#include "dpiQueryInfo_nif.h"
 #include "dpiData_nif.h"
-#include "dpiVar_nif.h"
-#include <stdio.h>
+#include "dpiQueryInfo_nif.h"
 
 ErlNifResourceType *dpiStmt_type;
 
@@ -127,7 +126,6 @@ DPI_NIF_FUN(stmt_getQueryValue)
     return map;
 }
 
-#include "dpiQueryInfo_nif.h"
 DPI_NIF_FUN(stmt_getQueryInfo)
 {
     CHECK_ARGCOUNT(2);
