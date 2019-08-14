@@ -188,6 +188,8 @@ DPI_NIF_FUN(stmt_getQueryInfo)
     dpiDataTypeInfo dti = queryInfo.typeInfo;
     ERL_NIF_TERM typeInfo = enif_make_new_map(env);
 
+    // constructuing a map of
+    // https://oracle.github.io/odpi/doc/structs/dpiDataTypeInfo.html
     ERL_NIF_TERM oracleTypeNumAtom;
     DPI_ORACLE_TYPE_NUM_TO_ATOM(dti.oracleTypeNum, oracleTypeNumAtom);
     enif_make_map_put(env, typeInfo, enif_make_atom(env, "oracleTypeNum"),
