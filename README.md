@@ -11,7 +11,7 @@ Currently builds in Window, Linux and OS X
 ## Compile (all OSs)
 
 ```sh
-# embedded odpic source (default)
+# embed odpic source (default)
 rebar3 compile
 # link with compiled odpic library
 # (c_src/odpi/lib/ needed at runtime for NIF load)
