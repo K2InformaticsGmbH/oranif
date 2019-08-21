@@ -23,7 +23,7 @@ main([]) ->
         Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 10,
         10, true, false, null
     ),
-     #{var := VarRowId} = dpi:conn_newVar(
+    #{var := VarRowId} = dpi:conn_newVar(
         Conn, 'DPI_ORACLE_TYPE_ROWID', 'DPI_NATIVE_TYPE_ROWID',
         10, 0, false, false, null
     ),
