@@ -92,7 +92,7 @@ DPI_NIF_FUN(var_getReturnedData)
 
     uint32_t pos;
     if (!enif_get_uint(env, argv[1], &pos))
-        BADARG_EXCEPTION(3, "uint pos");
+        BADARG_EXCEPTION(1, "uint pos");
 
     uint32_t numElements;
     dpiData *data;

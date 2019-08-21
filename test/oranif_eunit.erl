@@ -604,6 +604,14 @@ stmtExecuteMany_varGetReturnedData(#{session := Conn} = TestCtx) ->
             [Stmt, ['DPI_MODE_EXEC_COMMIT_ON_SUCCESS'], 10]
         )
     ),
+    ?ASSERT_EX(
+        "Unable to retrieve resource var from arg0",
+        dpiCall(TestCtx, var_getReturnedData, [?BAD_REF, 0])
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve uint pos from arg1",
+        dpiCall(TestCtx, var_getReturnedData, [VarRowId, ?BAD_INT])
+    ),
     [begin
         Result = dpiCall(TestCtx, var_getReturnedData, [VarRowId, Idx]),
         ?assertMatch(#{numElements := 1, data := [_]}, Result),
