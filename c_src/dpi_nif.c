@@ -24,6 +24,12 @@ static ErlNifFunc nif_funcs[] = {
     DPIDATA_NIFS,
     DPIVAR_NIFS};
 
+typedef struct
+{
+    int test;
+    dpiContext *context;
+} oranif_priv;
+
 /*******************************************************************************
  * Helper internal functions
  ******************************************************************************/
@@ -76,15 +82,6 @@ ERL_NIF_TERM dpiErrorInfoMap(ErlNifEnv *env, dpiErrorInfo e)
     RETURNED_TRACE;
     return map;
 }
-
-/*******************************************************************************
- * NIF Interface
- ******************************************************************************/
-
-typedef struct {
-    int test;
-    dpiContext *context;
-} oranif_priv;
 
 /*******************************************************************************
  * NIF Interface
