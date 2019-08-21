@@ -142,6 +142,7 @@ extern ERL_NIF_TERM ATOM_ENOMEM;
     {                         \
 #_fun, _arity, _fun   \
     }
+
 #define IOB_NIF(_fun, _arity)                           \
     {                                                   \
 #_fun, _arity, _fun, ERL_NIF_DIRTY_JOB_IO_BOUND \
