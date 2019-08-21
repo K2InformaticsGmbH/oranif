@@ -6,14 +6,14 @@
 -define(DPI_MINOR_VERSION, 0).
 -define(TNS,
 	<<"(DESCRIPTION=(ADDRESS_LIST=(ADDRESS="
-	"(PROTOCOL=tcp)(HOST=192.168.1.43)(PORT=1521)))"
+	"(PROTOCOL=tcp)(HOST=127.0.0.1)(PORT=1521)))"
 	"(CONNECT_DATA=(SERVICE_NAME=XE)))">>
 ).
 main([]) ->
 	dpi:load_unsafe(),
 	Context = dpi:context_create(?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION),
     Conn = dpi:conn_create(
-		Context, <<"scott">>, <<"regit">>, ?TNS,
+		Context, <<"scott">>, <<"tiger">>, ?TNS,
         #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}
 	),
 	Sql = <<"insert into test (col2) values (:col2) returning rowid into :rid">>,
