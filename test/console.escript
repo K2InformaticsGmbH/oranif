@@ -1,6 +1,6 @@
 #!/user/bin/escript
 %% -*- erlang -*-
-%%! -name console@127.0.0.1 -setcookie console -pa _build/default/lib/oranif/ebin
+%%! -pa _build/default/lib/oranif/ebin
 
 -define(DPI_MAJOR_VERSION, 3).
 -define(DPI_MINOR_VERSION, 0).
@@ -13,17 +13,17 @@ main([]) ->
     dpi:load_unsafe(),
     Context = dpi:context_create(?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION),
     Conn = dpi:conn_create(
-        Context, <<"scott">>, <<"tiger">>, ?TNS,
+        Context, <<"scott">>, <<"regit">>, ?TNS,
         #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}
     ),
     Sql = <<"insert into test (col2) values (:col2) returning rowid into :rid">>,
     Stmt = dpi:conn_prepareStmt(Conn, false, Sql, <<>>),
-    io:format("statement : ~p~n", [Stmt]),
+    io:format("[~p] statement : ~p~n", [?LINE, Stmt]),
      #{var := VarCol} = dpi:conn_newVar(
         Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 10,
         10, true, false, null
     ),
-     #{var := VarRowId, data := TDatas} = dpi:conn_newVar(
+     #{var := VarRowId} = dpi:conn_newVar(
         Conn, 'DPI_ORACLE_TYPE_ROWID', 'DPI_NATIVE_TYPE_ROWID',
         10, 0, false, false, null
     ),
@@ -38,7 +38,6 @@ main([]) ->
                 || _ <- lists:seq(1, 10) >>        
     ) || Idx <- Indices],
     ok = dpi:stmt_executeMany(Stmt, [], 10),
-    [ok = dpi:data_release(TData) || TData <- TDatas],
     [begin
         #{numElements := 1, data  := [D]} = dpi:var_getReturnedData(VarRowId, Idx),
         io:format("[~p] data~p ~s~n", [?LINE, Idx, dpi:data_get(D)]),
