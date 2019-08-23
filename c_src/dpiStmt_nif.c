@@ -143,7 +143,7 @@ DPI_NIF_FUN(stmt_getQueryValue)
         stmtRes->context,
         dpiStmt_getQueryValue(
             stmtRes->stmt, pos, &nativeTypeNum, &(data->dpiDataPtr)),
-        data, dpiData);
+        data, dpiDataPtr);
 
     data->type = nativeTypeNum;
     ERL_NIF_TERM dpiDataRes = enif_make_resource(env, data);
