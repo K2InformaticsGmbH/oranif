@@ -46,22 +46,22 @@ DPI_NIF_FUN(resource_count)
     ret = enif_make_new_map(env);
     enif_make_map_put(
         env, ret, enif_make_atom(env, "context"),
-        enif_make_ulong(env, st->res_count.context), &ret);
+        enif_make_ulong(env, st->dpiContext_count), &ret);
     enif_make_map_put(
         env, ret, enif_make_atom(env, "connection"),
-        enif_make_ulong(env, st->res_count.connection), &ret);
+        enif_make_ulong(env, st->dpiConn_count), &ret);
     enif_make_map_put(
         env, ret, enif_make_atom(env, "statement"),
-        enif_make_ulong(env, st->res_count.statement), &ret);
+        enif_make_ulong(env, st->dpiStmt_count), &ret);
     enif_make_map_put(
         env, ret, enif_make_atom(env, "variable"),
-        enif_make_ulong(env, st->res_count.variable), &ret);
+        enif_make_ulong(env, st->dpiVar_count), &ret);
     enif_make_map_put(
         env, ret, enif_make_atom(env, "data"),
-        enif_make_ulong(env, st->res_count.data), &ret);
+        enif_make_ulong(env, st->dpiData_count), &ret);
     enif_make_map_put(
         env, ret, enif_make_atom(env, "datapointer"),
-        enif_make_ulong(env, st->res_count.datapointer), &ret);
+        enif_make_ulong(env, st->dpiDataPtr_count), &ret);
 
     RETURNED_TRACE;
     return ret;
@@ -127,15 +127,23 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     oranif_st *st = enif_alloc(sizeof(oranif_st));
     if (st == NULL)
     {
+        E("failed allocate private structure of %d bytes", sizeof(oranif_st));
         return 1;
     }
 
-    st->res_count.data = 0;
-    st->res_count.context = 0;
-    st->res_count.variable = 0;
-    st->res_count.statement = 0;
-    st->res_count.connection = 0;
-    st->res_count.datapointer = 0;
+    st->lock = enif_mutex_create("oranif");
+    if (st->lock == NULL)
+    {
+        E("failed to create oranif mutex");
+        return 1;
+    }
+
+    st->dpiVar_count = 0;
+    st->dpiData_count = 0;
+    st->dpiStmt_count = 0;
+    st->dpiConn_count = 0;
+    st->dpiContext_count = 0;
+    st->dpiDataPtr_count = 0;
 
     DEF_RES(dpiContext);
     DEF_RES(dpiConn);
@@ -169,6 +177,7 @@ static void unload(ErlNifEnv *env, void *priv_data)
 {
     CALL_TRACE;
 
+    enif_mutex_destroy(((oranif_st *)priv_data)->lock);
     enif_free(priv_data);
 
     RETURNED_TRACE;
