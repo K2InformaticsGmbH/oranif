@@ -169,6 +169,31 @@ static int upgrade(ErlNifEnv *env, void **priv_data,
                    void **old_priv_data, ERL_NIF_TERM load_info)
 {
     CALL_TRACE;
+
+    oranif_st *st = enif_alloc(sizeof(oranif_st));
+    if (st == NULL)
+    {
+        E("failed allocate private structure of %d bytes", sizeof(oranif_st));
+        return 1;
+    }
+
+    st->lock = enif_mutex_create("oranif");
+    if (st->lock == NULL)
+    {
+        E("failed to create oranif mutex");
+        return 1;
+    }
+
+    oranif_st *old_st = (oranif_st *)*old_priv_data;
+    st->dpiVar_count = old_st->dpiVar_count;
+    st->dpiData_count = old_st->dpiData_count;
+    st->dpiStmt_count = old_st->dpiStmt_count;
+    st->dpiConn_count = old_st->dpiConn_count;
+    st->dpiContext_count = old_st->dpiContext_count;
+    st->dpiDataPtr_count = old_st->dpiDataPtr_count;
+
+    *priv_data = (void *)st;
+
     RETURNED_TRACE;
     return 0;
 }
