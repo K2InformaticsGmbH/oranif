@@ -22,6 +22,7 @@ DPI_NIF_FUN(context_create)
 
     dpiContext_res *contextRes =
         enif_alloc_resource(dpiContext_type, sizeof(dpiContext_res));
+    ((oranif_st *)enif_priv_data(env))->res_count.context++;
 
     // RAISE_EXCEPTION_ON_DPI_ERROR macro can't be used since we need to return
     // the error details too
@@ -58,6 +59,7 @@ DPI_NIF_FUN(context_destroy)
         contextRes->context, dpiContext_destroy(contextRes->context), NULL);
 
     enif_release_resource(contextRes);
+    ((oranif_st *)enif_priv_data(env))->res_count.context--;
 
     RETURNED_TRACE;
     return ATOM_OK;

@@ -17,12 +17,15 @@ ERL_NIF_TERM ATOM_FALSE;
 ERL_NIF_TERM ATOM_ERROR;
 ERL_NIF_TERM ATOM_ENOMEM;
 
+DPI_NIF_FUN(resource_count);
+
 static ErlNifFunc nif_funcs[] = {
     DPICONTEXT_NIFS,
     DPICONN_NIFS,
     DPISTMT_NIFS,
     DPIDATA_NIFS,
-    DPIVAR_NIFS};
+    DPIVAR_NIFS,
+    {"resource_count", 0, resource_count}};
 
 typedef struct
 {
@@ -33,6 +36,36 @@ typedef struct
 /*******************************************************************************
  * Helper internal functions
  ******************************************************************************/
+DPI_NIF_FUN(resource_count)
+{
+    CHECK_ARGCOUNT(0);
+
+    oranif_st *st = (oranif_st *)enif_priv_data(env);
+
+    ERL_NIF_TERM ret = enif_make_new_map(env);
+    ret = enif_make_new_map(env);
+    enif_make_map_put(
+        env, ret, enif_make_atom(env, "context"),
+        enif_make_ulong(env, st->res_count.context), &ret);
+    enif_make_map_put(
+        env, ret, enif_make_atom(env, "connection"),
+        enif_make_ulong(env, st->res_count.connection), &ret);
+    enif_make_map_put(
+        env, ret, enif_make_atom(env, "statement"),
+        enif_make_ulong(env, st->res_count.statement), &ret);
+    enif_make_map_put(
+        env, ret, enif_make_atom(env, "variable"),
+        enif_make_ulong(env, st->res_count.variable), &ret);
+    enif_make_map_put(
+        env, ret, enif_make_atom(env, "data"),
+        enif_make_ulong(env, st->res_count.data), &ret);
+    enif_make_map_put(
+        env, ret, enif_make_atom(env, "datapointer"),
+        enif_make_ulong(env, st->res_count.datapointer), &ret);
+
+    RETURNED_TRACE;
+    return ret;
+}
 
 ERL_NIF_TERM dpiErrorInfoMap(ErlNifEnv *env, dpiErrorInfo e)
 {
@@ -91,6 +124,19 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 {
     CALL_TRACE;
 
+    oranif_st *st = enif_alloc(sizeof(oranif_st));
+    if (st == NULL)
+    {
+        return 1;
+    }
+
+    st->res_count.data = 0;
+    st->res_count.context = 0;
+    st->res_count.variable = 0;
+    st->res_count.statement = 0;
+    st->res_count.connection = 0;
+    st->res_count.datapointer = 0;
+
     DEF_RES(dpiContext);
     DEF_RES(dpiConn);
     DEF_RES(dpiStmt);
@@ -104,6 +150,8 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     ATOM_FALSE = enif_make_atom(env, "false");
     ATOM_ERROR = enif_make_atom(env, "error");
     ATOM_ENOMEM = enif_make_atom(env, "enomem");
+
+    *priv_data = (void *)st;
 
     RETURNED_TRACE;
     return 0;
@@ -120,6 +168,9 @@ static int upgrade(ErlNifEnv *env, void **priv_data,
 static void unload(ErlNifEnv *env, void *priv_data)
 {
     CALL_TRACE;
+
+    enif_free(priv_data);
+
     RETURNED_TRACE;
 }
 

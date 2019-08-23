@@ -177,4 +177,15 @@ extern ERL_NIF_TERM dpiErrorInfoMap(ErlNifEnv *, dpiErrorInfo);
         _assign = enif_make_atom(env, #_macro); \
         break
 
+typedef struct {
+    struct {
+        unsigned long long context;
+        unsigned long long connection;
+        unsigned long long statement;
+        unsigned long long data;
+        unsigned long long datapointer;
+        unsigned long long variable;
+    } res_count;
+} oranif_st;
+
 #endif // _DPI_NIF_H_

@@ -6,11 +6,12 @@
 -define(DPI_MINOR_VERSION, 0).
 -define(TNS,
 	<<"(DESCRIPTION=(ADDRESS_LIST=(ADDRESS="
-	"(PROTOCOL=tcp)(HOST=127.0.0.1)(PORT=1522)))"
+	"(PROTOCOL=tcp)(HOST=127.0.0.1)(PORT=1521)))"
 	"(CONNECT_DATA=(SERVICE_NAME=XE)))">>
 ).
 main([]) ->
 	dpi:load_unsafe(),
+	io:format("START ~p~n", [dpi:resource_count()]),
 	Context = dpi:context_create(?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION),
     Conn = dpi:conn_create(
 		Context, <<"scott">>, <<"regit">>, ?TNS,
@@ -32,5 +33,5 @@ main([]) ->
 	ok = dpi:stmt_close(Stmt, <<>>),
 	ok = dpi:conn_close(Conn, [], <<>>),
 	ok = dpi:context_destroy(Context),
-	io:format("DONE~n"),
+	io:format("DONE ~p~n", [dpi:resource_count()]),
 	halt(1).
