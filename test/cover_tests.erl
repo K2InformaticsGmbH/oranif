@@ -350,6 +350,10 @@ connClose(#{context := Context, session := Conn} = TestCtx) ->
     ?assertEqual(ok, Result).
 
 connGetServerVersion(#{session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource connection from arg0",
+        dpiCall(TestCtx, conn_getServerVersion, [?BAD_REF])
+    ),
     #{
         releaseNum := ReleaseNum, versionNum := VersionNum,
         fullVersionNum := FullVersionNum, portReleaseNum := PortReleaseNum,
@@ -361,47 +365,25 @@ connGetServerVersion(#{session := Conn} = TestCtx) ->
     ?assert(is_integer(PortReleaseNum)),
     ?assert(is_integer(PortUpdateNum)),
     ?assert(is_list(ReleaseString)).
-  
-connGetServerVersionBadConn(TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource connection from arg0",
-        dpiCall(TestCtx, conn_getServerVersion, [?BAD_REF])
-    ).
-
-% fails due to the reference being completely wrong (apparently passing a
-% released connection isn't bad enough)
-connGetServerVersionFail(#{context := Context} = TestCtx) ->
-    #{tns := Tns, user := User, password := Password} = getConfig(),
-    Conn = dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
-            #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
-    dpiCall(TestCtx, conn_close, [Conn, [], <<>>]),
-    ?ASSERT_EX(
-        "Unable to retrieve resource connection from arg0",
-        dpiCall(TestCtx, conn_getServerVersion, [Context])
-    ).
 
 connSetClientIdentifier(#{session := Conn} = TestCtx) ->
-   ?assertEqual(ok,
-        dpiCall(
-            TestCtx, conn_setClientIdentifier, 
-            [Conn, <<"myCoolConnection">>]
-        )
-    ).
-
-connSetClientIdentifierBadConn(TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource connection from arg0",
         dpiCall(
             TestCtx, conn_setClientIdentifier,
             [?BAD_REF, <<"myCoolConnection">>]
         )
-    ).
-
-connSetClientIdentifierBadValue(#{session := Conn} = TestCtx) ->
+    ),
     ?ASSERT_EX(
         "Unable to retrieve string/binary value from arg1",
         dpiCall(
             TestCtx, conn_setClientIdentifier, [Conn, badBinary]
+        )
+    ),
+    ?assertEqual(ok,
+        dpiCall(
+            TestCtx, conn_setClientIdentifier, 
+            [Conn, <<"myCoolConnection">>]
         )
     ).
 
@@ -468,32 +450,10 @@ stmtExecuteMany(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtExecute(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
-    QueryCols = dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?assertEqual(1, QueryCols),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtExecuteWithModes(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
-    QueryCols = dpiCall(
-        TestCtx, stmt_execute, [Stmt, ['DPI_MODE_EXEC_DEFAULT']]
-    ),
-    ?assertEqual(1, QueryCols),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtExecutebadStmt(TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource statement from arg0",
         dpiCall(TestCtx, stmt_execute, [?BAD_REF, []])
-    ).
-
-stmtExecuteBadModes(#{session := Conn} = TestCtx) ->
+    ),
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt, 
         [Conn, false, <<"select 1 from dual">>, <<>>]
@@ -502,33 +462,42 @@ stmtExecuteBadModes(#{session := Conn} = TestCtx) ->
         "Unable to retrieve list of atoms from arg1",
         dpiCall(TestCtx, stmt_execute, [Stmt, badList])
     ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtExecuteBadModesInside(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
     ?ASSERT_EX(
         "mode must be a list of atoms",
         dpiCall(TestCtx, stmt_execute, [Stmt, ["badAtom"]])
     ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-% fails due to the SQL being invalid
-stmtExecuteFail(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(
+    ?assertEqual(
+        1,
+        dpiCall(
+            TestCtx, stmt_execute, [Stmt, ['DPI_MODE_EXEC_DEFAULT']]
+        )
+    ),
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
+    % fails due to the SQL being invalid
+    Stmt1 = dpiCall(
         TestCtx, conn_prepareStmt, 
         [Conn, false, <<"all your base are belong to us">>, <<>>]
     ),
     ?ASSERT_EX(
         #{},
-        dpiCall(TestCtx, stmt_execute, [Stmt, []])
-    ).
+        dpiCall(TestCtx, stmt_execute, [Stmt1, []])
+    ),
+    dpiCall(TestCtx, stmt_close, [Stmt1, <<>>]).
 
 stmtFetch(#{session := Conn} = TestCtx) ->
-    SQL = <<"select 1337 from dual">>,
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, SQL, <<>>]),
+    ?ASSERT_EX(
+        "Unable to retrieve resource statement from arg0",
+        dpiCall(TestCtx, stmt_fetch, [?BAD_REF])
+    ),
+    % fails due to the reference being of the wrong type
+    ?ASSERT_EX(
+        "Unable to retrieve resource statement from arg0",
+        dpiCall(TestCtx, stmt_fetch, [Conn])
+    ),
+    Stmt = dpiCall(
+        TestCtx, conn_prepareStmt,
+        [Conn, false, <<"select 1337 from dual">>, <<>>]
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     #{found := Found, bufferRowIndex := BufferRowIndex} =
         dpiCall(TestCtx, stmt_fetch, [Stmt]),
@@ -536,25 +505,25 @@ stmtFetch(#{session := Conn} = TestCtx) ->
     ?assert(is_integer(BufferRowIndex)),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-stmtFetchBadStmt(TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource statement from arg0",
-        dpiCall(TestCtx, stmt_fetch, [?BAD_REF])
-    ).
-
-% fails due to the reference being of the wrong type
-stmtFetchBadRes(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource statement from arg0",
-        dpiCall(TestCtx, stmt_fetch, [Conn])
-    ).
-
 stmtGetQueryValue(#{session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource statement from arg0",
+        dpiCall(TestCtx, stmt_getQueryValue, [?BAD_REF, 1])
+    ),
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt, 
         [Conn, false, <<"select 1337 from dual">>, <<>>]
     ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
+    ?ASSERT_EX(
+        "Unable to retrieve uint pos from arg1",
+        dpiCall(TestCtx, stmt_getQueryValue, [Stmt, ?BAD_INT])
+    ),
+    % fails due to the fetch not being done
+    ?ASSERT_EX(
+        #{},
+        dpiCall(TestCtx, stmt_getQueryValue, [Stmt, 1])
+    ),
     dpiCall(TestCtx, stmt_fetch, [Stmt]),
     #{nativeTypeNum := Type, data := Result} =
         dpiCall(TestCtx, stmt_getQueryValue, [Stmt, 1]),
@@ -563,42 +532,20 @@ stmtGetQueryValue(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, data_release, [Result]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-stmtGetQueryValueBadStmt(TestCtx) ->
+stmtGetQueryInfo(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource statement from arg0",
-        dpiCall(TestCtx, stmt_getQueryValue, [?BAD_REF, 1])
-    ).
-
-stmtGetQueryValueBadPos(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"select 1337 from dual">>, <<>>]
+        dpiCall(TestCtx, stmt_getQueryInfo, [?BAD_REF, 1])
     ),
-    ?ASSERT_EX(
-        "Unable to retrieve uint pos from arg1",
-        dpiCall(TestCtx, stmt_getQueryValue, [Stmt, ?BAD_INT])
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-% fails due to the fetch not being done
-stmtGetQueryValueFail(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"select 1337 from dual">>, <<>>]
-    ),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?ASSERT_EX(
-        #{},
-        dpiCall(TestCtx, stmt_getQueryValue, [Stmt, 1])
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtGetQueryInfo(#{session := Conn} = TestCtx) ->
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt,
         [Conn, false, <<"select 1 from dual">>, <<>>]
     ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
+    ?ASSERT_EX(
+        "Unable to retrieve uint pos from arg1",
+        dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, ?BAD_INT])
+    ),
     #{name := Name, nullOk := NullOk,
         typeInfo := #{clientSizeInBytes := ClientSizeInBytes,
             dbSizeInBytes := DbSizeInBytes,
@@ -625,50 +572,16 @@ stmtGetQueryInfo(#{session := Conn} = TestCtx) ->
     
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-stmtGetQueryInfoBadStmt(TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource statement from arg0",
-        dpiCall(TestCtx, stmt_getQueryInfo, [?BAD_REF, 1])
-    ).
-
-stmtGetQueryInfoBadPos(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"select 1337 from dual">>, <<>>]
-    ),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?ASSERT_EX(
-        "Unable to retrieve uint pos from arg1",
-        dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, ?BAD_INT])
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-% fails due to the SQL being bad
-stmtGetQueryInfoFail(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"bibidi babidi boo">>, <<>>]
-    ),
-    ?ASSERT_EX(
-        #{},
-        dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1])
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtGetInfoBadStmt(TestCtx) ->
+stmtGetInfo(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource statement from arg0",
         dpiCall(TestCtx, stmt_getInfo, [?BAD_REF])
-    ).
-
-% fails due to the ref being wrong
-stmtGetInfoFail(#{session := Conn} = TestCtx) ->
+    ),
+    % fails due to the ref being wrong
     ?ASSERT_EX(
         "Unable to retrieve resource statement from arg0",
         dpiCall(TestCtx, stmt_getInfo, [Conn])
-    ).
-
-stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
+    ),
     lists:foreach(
         fun({Match, StmtStr}) ->
             Stmt = dpiCall(
@@ -685,71 +598,46 @@ stmtGetInfoStmtTypes(#{session := Conn} = TestCtx) ->
             ?assert(is_boolean(IsPLSQL)),
             ?assert(is_boolean(IsQuery)),
             ?assert(is_boolean(IsReturning)),
-            ?assertEqual(Match, StatementType) end,
-            [
-                {'DPI_STMT_TYPE_UNKNOWN', <<"another one bites the dust">>},
-                {'DPI_STMT_TYPE_SELECT', <<"select 2 from dual">>},
-                {'DPI_STMT_TYPE_UPDATE', <<"update a set b = 5 where c = 3">>},
-                {'DPI_STMT_TYPE_DELETE', <<"delete from a where b = 5">>},
-                {'DPI_STMT_TYPE_INSERT', <<"insert into a (b) values (5)">>},
-                {'DPI_STMT_TYPE_CREATE', <<"create table a (b int)">>},
-                {'DPI_STMT_TYPE_DROP', <<"drop table students">>},
-                {'DPI_STMT_TYPE_ALTER', <<"alter table a add b int">>},
-                {'DPI_STMT_TYPE_BEGIN', <<"begin null end">>},
-                {'DPI_STMT_TYPE_DECLARE', <<"declare mambo number(5)">>},
-                {'DPI_STMT_TYPE_CALL', <<"call a.b(c)">>},
-                {'DPI_STMT_TYPE_MERGE', <<"MERGE INTO a USING b ON (1 = 1)">>},
-                {'DPI_STMT_TYPE_EXPLAIN_PLAN', <<"EXPLAIN">>},
-                {'DPI_STMT_TYPE_COMMIT', <<"commit">>},
-                {'DPI_STMT_TYPE_ROLLBACK', <<"rollback">>}
-            ]
-        ).
+            ?assertEqual(Match, StatementType)
+        end,
+        [
+            {'DPI_STMT_TYPE_UNKNOWN', <<"another one bites the dust">>},
+            {'DPI_STMT_TYPE_SELECT', <<"select 2 from dual">>},
+            {'DPI_STMT_TYPE_UPDATE', <<"update a set b = 5 where c = 3">>},
+            {'DPI_STMT_TYPE_DELETE', <<"delete from a where b = 5">>},
+            {'DPI_STMT_TYPE_INSERT', <<"insert into a (b) values (5)">>},
+            {'DPI_STMT_TYPE_CREATE', <<"create table a (b int)">>},
+            {'DPI_STMT_TYPE_DROP', <<"drop table students">>},
+            {'DPI_STMT_TYPE_ALTER', <<"alter table a add b int">>},
+            {'DPI_STMT_TYPE_BEGIN', <<"begin null end">>},
+            {'DPI_STMT_TYPE_DECLARE', <<"declare mambo number(5)">>},
+            {'DPI_STMT_TYPE_CALL', <<"call a.b(c)">>},
+            {'DPI_STMT_TYPE_MERGE', <<"MERGE INTO a USING b ON (1 = 1)">>},
+            {'DPI_STMT_TYPE_EXPLAIN_PLAN', <<"EXPLAIN">>},
+            {'DPI_STMT_TYPE_COMMIT', <<"commit">>},
+            {'DPI_STMT_TYPE_ROLLBACK', <<"rollback">>}
+        ]
+    ).
 
 stmtGetNumQueryColumns(#{session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource statement from arg0",
+        dpiCall(TestCtx, stmt_getNumQueryColumns, [?BAD_REF])
+    ),
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt, 
         [Conn, false, <<"select 1337 from dual">>, <<>>]
     ),
     Count = dpiCall(TestCtx, stmt_getNumQueryColumns, [Stmt]),
     ?assert(is_integer(Count)),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtGetNumQueryColumnsBadStmt(TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource statement from arg0",
-        dpiCall(TestCtx, stmt_getNumQueryColumns, [?BAD_REF])
-    ).
-
-% fails due to the statement being released too early
-stmtGetNumQueryColumnsFail(#{session := Conn} = TestCtx) ->
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, [Conn, false, <<"it is showtime">>, <<>>]
-    ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
+    % fails due to the statement already released
     ?ASSERT_EX(
         #{},
         dpiCall(TestCtx, stmt_getNumQueryColumns, [Stmt])
     ).
 
 stmtBindValueByPos(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
-    ),
-    BindData = dpiCall(TestCtx, data_ctor, []),
-    ?assertEqual(ok,
-        dpiCall(
-            TestCtx, stmt_bindValueByPos, 
-            [Stmt, 1, 'DPI_NATIVE_TYPE_INT64', BindData]
-        )
-    ),
-    dpiCall(TestCtx, data_release, [BindData]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
-
-stmtBindValueByPosBadStmt(TestCtx) -> 
     BindData = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve resource statement from arg0",
@@ -758,14 +646,12 @@ stmtBindValueByPosBadStmt(TestCtx) ->
             [?BAD_REF, 1, 'DPI_NATIVE_TYPE_INT64', BindData]
         )
     ),
-    dpiCall(TestCtx, data_release, [BindData]).
-
-stmtBindValueByPosBadPos(#{session := Conn} = TestCtx) -> 
+    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
+    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
+        TestCtx, conn_prepareStmt,
         [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
     ),
-    BindData = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve uint pos from arg1",
         dpiCall(
@@ -773,26 +659,15 @@ stmtBindValueByPosBadPos(#{session := Conn} = TestCtx) ->
             [Stmt, ?BAD_INT, 'DPI_NATIVE_TYPE_INT64', BindData]
         )
     ),
-    dpiCall(TestCtx, data_release, [BindData]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtBindValueByPosBadType(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
-    ),
-    BindData = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "wrong or unsupported dpiNativeType type",
         dpiCall(TestCtx, stmt_bindValueByPos, [Stmt, 1, "badAtom", BindData])
     ),
-    dpiCall(TestCtx, data_release, [BindData]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtBindValueByPosBadData(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
+    ?assertEqual(ok,
+        dpiCall(
+            TestCtx, stmt_bindValueByPos, 
+            [Stmt, 1, 'DPI_NATIVE_TYPE_INT64', BindData]
+        )
     ),
     ?ASSERT_EX(
         "Unable to retrieve resource data from arg3",
@@ -801,17 +676,7 @@ stmtBindValueByPosBadData(#{session := Conn} = TestCtx) ->
             [Stmt, 1, 'DPI_NATIVE_TYPE_INT64', ?BAD_REF]
         )
     ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-% fails due to the position being invalid
-stmtBindValueByPosFail(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
-    ),
-    BindData = dpiCall(TestCtx, data_ctor, []),
+    % fails due to the position being invalid
     ?ASSERT_EX(
         "Unable to retrieve uint pos from arg1",
         dpiCall(
@@ -830,7 +695,42 @@ stmtBindValueByName(#{session := Conn} = TestCtx) ->
         TestCtx, conn_prepareStmt, 
         [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
     ),
+    ?ASSERT_EX(
+        "Unable to retrieve resource data from arg3",
+        dpiCall(
+            TestCtx, stmt_bindValueByName, 
+            [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', ?BAD_REF]
+        )
+    ),
     BindData = dpiCall(TestCtx, data_ctor, []),
+    ?ASSERT_EX(
+        "Unable to retrieve resource statement from arg0",
+        dpiCall(
+            TestCtx, stmt_bindValueByName, 
+            [?BAD_REF, <<"A">>, 'DPI_NATIVE_TYPE_INT64', BindData]
+        )
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve string/list name from arg1",
+        dpiCall(
+            TestCtx, stmt_bindValueByName,
+            [Stmt, ?BAD_INT, 'DPI_NATIVE_TYPE_INT64', BindData]
+        )
+    ),
+    ?ASSERT_EX(
+        "wrong or unsupported dpiNativeType type",
+        dpiCall(
+            TestCtx, stmt_bindValueByName, [Stmt, <<"A">>, "badAtom", BindData]
+        )
+    ),
+    % fails due to bad data handle passing
+    ?ASSERT_EX(
+        "Unable to retrieve resource data from arg3",
+        dpiCall(
+            TestCtx, stmt_bindValueByName, 
+            [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', ?BAD_REF]
+        )
+    ),
     ?assertEqual(ok, 
         dpiCall(
             TestCtx, stmt_bindValueByName, 
@@ -841,81 +741,6 @@ stmtBindValueByName(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
 
-stmtBindValueByNameBadStmt(TestCtx) -> 
-    BindData = dpiCall(TestCtx, data_ctor, []),
-    ?ASSERT_EX(
-        "Unable to retrieve resource statement from arg0",
-        dpiCall(
-            TestCtx, stmt_bindValueByName, 
-            [?BAD_REF, <<"A">>, 'DPI_NATIVE_TYPE_INT64', BindData]
-        )
-    ),
-    dpiCall(TestCtx, data_release, [BindData]).
-
-stmtBindValueByNameBadPos(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
-    ),
-    BindData = dpiCall(TestCtx, data_ctor, []),
-    ?ASSERT_EX(
-        "Unable to retrieve string/list name from arg1",
-        dpiCall(
-            TestCtx, stmt_bindValueByName,
-            [Stmt, ?BAD_INT, 'DPI_NATIVE_TYPE_INT64', BindData]
-        )
-    ),
-    dpiCall(TestCtx, data_release, [BindData]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtBindValueByNameBadPosType(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
-    ),
-    BindData = dpiCall(TestCtx, data_ctor, []),
-    ?ASSERT_EX(
-        "wrong or unsupported dpiNativeType type",
-        dpiCall(
-            TestCtx, stmt_bindValueByName, [Stmt, <<"A">>, "badAtom", BindData])
-        ),
-    dpiCall(TestCtx, data_release, [BindData]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtBindValueByNameBadData(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
-    ),
-    ?ASSERT_EX(
-        "Unable to retrieve resource data from arg3",
-        dpiCall(
-            TestCtx, stmt_bindValueByName, 
-            [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', ?BAD_REF]
-        )
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-% fails due to bad data handle passing
-stmtBindValueByNameFail(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
-    ),
-    BindData = dpiCall(TestCtx, data_ctor, []),
-    ?ASSERT_EX(
-        "Unable to retrieve resource data from arg3",
-        dpiCall(
-            TestCtx, stmt_bindValueByName, 
-            [Stmt, <<"A">>, 'DPI_NATIVE_TYPE_INT64', Stmt]
-        )
-    ),
-    dpiCall(TestCtx, data_release, [BindData]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
 stmtBindByPos(#{session := Conn} = TestCtx) -> 
     ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
     ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
@@ -923,89 +748,26 @@ stmtBindByPos(#{session := Conn} = TestCtx) ->
         TestCtx, conn_prepareStmt, 
         [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
     ),
-    #{var := Var, data := Data} = 
-        dpiCall(
-            TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
-                100, 0, false, false, null]
-        ),
-    ?assertEqual(ok, dpiCall(TestCtx, stmt_bindByPos, [Stmt, 1, Var])),
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
-
-stmtBindByPosBadStmt(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    #{var := Var, data := Data} = 
-        dpiCall(
-            TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
-                0, false, false, null]
-        ),
+    #{var := Var, data := Data} = dpiCall(
+        TestCtx, conn_newVar, 
+        [
+            Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
+            0, false, false, null
+        ]
+    ),
     ?ASSERT_EX(
         "Unable to retrieve resource statement from arg0",
         dpiCall(TestCtx, stmt_bindByPos, [?BAD_REF, 1, Var])
     ),
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
-
-stmtBindByPosBadPos(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
-    ),
-    #{var := Var, data := Data} = 
-        dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
-            100, 0, false, false, null]
-        ),
     ?ASSERT_EX(
         "Unable to retrieve uint pos from arg1",
         dpiCall(TestCtx, stmt_bindByPos, [Stmt, ?BAD_INT, Var])
-    ),
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
-
-stmtBindByPosBadVar(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
     ),
     ?ASSERT_EX(
         "Unable to retrieve resource var from arg3",
         dpiCall(TestCtx, stmt_bindByPos, [Stmt, 1, ?BAD_REF])
     ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
-
-% fails due to the position being invalid
-stmtBindByPosFail(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
-    ),
-    #{var := Var, data := Data} = 
-        dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
-            0, false, false, null]
-        ),
-    ?ASSERT_EX(
-        "Unable to retrieve uint pos from arg1",
-        dpiCall(TestCtx, stmt_bindByPos, [Stmt, -1, Var])
-    ),
+    ?assertEqual(ok, dpiCall(TestCtx, stmt_bindByPos, [Stmt, 1, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
@@ -1018,89 +780,31 @@ stmtBindByName(#{session := Conn} = TestCtx) ->
         TestCtx, conn_prepareStmt,
         [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
     ),
-    #{var := Var, data := Data} = 
-        dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
-            0, false, false, null]
-        ),
-    ?assertEqual(ok, dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"A">>, Var])),
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
-
-stmtBindByNameBadStmt(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    #{var := Var, data := Data} = 
-        dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
-                100, 0, false, false, null]
-        ),
+    #{var := Var, data := Data} = dpiCall(
+        TestCtx, conn_newVar,
+        [
+            Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
+            0, false, false, null
+        ]
+    ),
     ?ASSERT_EX(
         "Unable to retrieve resource statement from arg0",
         dpiCall(TestCtx, stmt_bindByName, [?BAD_REF, <<"A">>, Var])
     ),
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
-
-stmtBindByNameBadPos(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
-    ),
-    #{var := Var, data := Data} = 
-        dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
-                0, false, false, null]
-        ),
     ?ASSERT_EX(
         "Unable to retrieve string/list name from arg1",
         dpiCall(TestCtx, stmt_bindByName, [Stmt, badBinary, Var])
-    ),
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
-
-stmtBindByNameBadVar(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
     ),
     ?ASSERT_EX(
         "Unable to retrieve resource var from arg3",
         dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"A">>, ?BAD_REF])
     ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
-
-% fails due to the position being invalid
-stmtBindByNameFail(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
-    ),
-    #{var := Var, data := Data} = 
-        dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 100,
-                0, false, false, null]
-        ),
+    % fails due to the position being invalid
     ?ASSERT_EX(
         #{},
         dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"B">>, Var])
     ),
+    ?assertEqual(ok, dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"A">>, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
@@ -2292,57 +1996,18 @@ cleanup(_) -> ok.
     ?F(connPing),
     ?F(connClose),
     ?F(connGetServerVersion),
-    ?F(connGetServerVersionBadConn),
-    ?F(connGetServerVersionFail),
     ?F(connSetClientIdentifier),
-    ?F(connSetClientIdentifierBadConn),
-    ?F(connSetClientIdentifierBadValue),
     ?F(stmtExecute),
     ?F(stmtExecuteMany),
-    ?F(stmtExecuteWithModes),
-    ?F(stmtExecutebadStmt),
-    ?F(stmtExecuteBadModes),
-    ?F(stmtExecuteBadModesInside),
-    ?F(stmtExecuteFail),
     ?F(stmtFetch),
-    ?F(stmtFetchBadStmt),
-    ?F(stmtFetchBadRes),
     ?F(stmtGetQueryValue),
-    ?F(stmtGetQueryValueBadStmt),
-    ?F(stmtGetQueryValueBadPos),
-    ?F(stmtGetQueryValueFail),
     ?F(stmtGetQueryInfo),
-    ?F(stmtGetQueryInfoBadStmt),
-    ?F(stmtGetQueryInfoBadPos),
-    ?F(stmtGetQueryInfoFail),
-    ?F(stmtGetInfoBadStmt),
-    ?F(stmtGetInfoFail),
-    ?F(stmtGetInfoStmtTypes),
+    ?F(stmtGetInfo),
     ?F(stmtGetNumQueryColumns),
-    ?F(stmtGetNumQueryColumnsBadStmt),
-    ?F(stmtGetNumQueryColumnsFail),
     ?F(stmtBindValueByPos),
-    ?F(stmtBindValueByPosBadStmt),
-    ?F(stmtBindValueByPosBadPos),
-    ?F(stmtBindValueByPosBadType),
-    ?F(stmtBindValueByPosBadData),
-    ?F(stmtBindValueByPosFail),
     ?F(stmtBindValueByName),
-    ?F(stmtBindValueByNameBadStmt),
-    ?F(stmtBindValueByNameBadPos),
-    ?F(stmtBindValueByNameBadPosType),
-    ?F(stmtBindValueByNameBadData),
-    ?F(stmtBindValueByNameFail),
     ?F(stmtBindByPos),
-    ?F(stmtBindByPosBadStmt),
-    ?F(stmtBindByPosBadPos),
-    ?F(stmtBindByPosBadVar),
-    ?F(stmtBindByPosFail),
     ?F(stmtBindByName),
-    ?F(stmtBindByNameBadStmt),
-    ?F(stmtBindByNameBadPos),
-    ?F(stmtBindByNameBadVar),
-    ?F(stmtBindByNameFail),
     ?F(stmtDefine),
     ?F(stmtDefineBadStmt),
     ?F(stmtDefineBadPos),
@@ -2511,21 +2176,23 @@ session_test_() ->
         ?W(?AFTER_CONNECTION_TESTS)
     }.
 
-load_test() -> 
+load_test() ->
+    % This is a place holder to trigger the upgrade and unload calbacks of the
+    % NIF code. This doesn't test anything only ensures code coverage.
     ?assertEqual(ok, dpi:load_unsafe()),
     c:c(dpi),
 
-    ?debugMsg("triggering upgrade callback"),
+    % triggering upgrade callback
     ?assertEqual(ok, dpi:load_unsafe()),
+
     % at this point, both old and current dpi code might be "bad"
 
-    % delete the old code
-    ?debugMsg("triggering unload callback"),
+    % delete the old code, triggers unload callback
     code:purge(dpi),
 
     % make the new code old
     code:delete(dpi),
 
-    % delete that old code, too. Now all the code is gone
-    ?debugMsg("triggering unload callback"),
+    % delete that old code, too. Now all the code is gone, triggering unload
+    % callback again
     code:purge(dpi).
