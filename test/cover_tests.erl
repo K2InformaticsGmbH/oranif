@@ -1,4 +1,4 @@
--module(oranif_eunit).
+-module(cover_tests).
 -include_lib("eunit/include/eunit.hrl").
 
 -define(DPI_MAJOR_VERSION, 3).
@@ -33,43 +33,30 @@
 %-------------------------------------------------------------------------------
 
 contextCreate(TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve uint major from arg0",
+        dpiCall(TestCtx, context_create, [?BAD_INT, ?DPI_MINOR_VERSION])
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve uint minor from arg1",
+        dpiCall(TestCtx, context_create, [?DPI_MAJOR_VERSION, ?BAD_INT])
+    ),
+    % fails due to nonsense major version
+    ?ASSERT_EX(
+        #{},
+        dpiCall(TestCtx, context_create, [1337, ?DPI_MINOR_VERSION])
+    ),
     Context = dpiCall(
         TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
     ),
     ?assert(is_reference(Context)),
     dpiCall(TestCtx, context_destroy, [Context]).
 
-contextCreateBadMaj(TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve uint major from arg0",
-        dpiCall(TestCtx, context_create, [?BAD_INT, ?DPI_MINOR_VERSION])
-    ).
-
-contextCreateBadMin(TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve uint minor from arg1",
-        dpiCall(TestCtx, context_create, [?DPI_MAJOR_VERSION, ?BAD_INT])
-    ).
-
-% fails due to nonsense major version
-contextCreateFail(TestCtx) ->
-    ?ASSERT_EX(
-        #{},
-        dpiCall(TestCtx, context_create, [1337, ?DPI_MINOR_VERSION])
-    ).
-
 contextDestroy(TestCtx) ->
-    Context = dpiCall(
-        TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
-    ),
-    ?assertEqual(ok, dpiCall(TestCtx, context_destroy, [Context])).
-
-contextDestroyBadContext(TestCtx) ->
    ?ASSERT_EX(
        "Unable to retrieve resource context from arg0",
-        dpiCall(TestCtx, context_destroy, [?BAD_REF])).
-
-contextDestroyBadContextState(TestCtx) ->
+        dpiCall(TestCtx, context_destroy, [?BAD_REF])
+    ),
     Context = dpiCall(
         TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
     ),
@@ -82,6 +69,17 @@ contextDestroyBadContextState(TestCtx) ->
     ).
 
 contextGetClientVersion(TestCtx) -> 
+    ?ASSERT_EX(
+        "Unable to retrieve resource context from arg0",
+        dpiCall(TestCtx, context_getClientVersion, [?BAD_REF])
+    ),
+    % fails due to a wrong handle being passed
+    BindData = dpiCall(TestCtx, data_ctor, []),
+    ?ASSERT_EX(
+        "Unable to retrieve resource context from arg0",
+        dpiCall(TestCtx, context_getClientVersion, [BindData])
+    ),
+    dpiCall(TestCtx, data_release, [BindData]),
     Context = dpiCall(
         TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
     ),
@@ -92,102 +90,47 @@ contextGetClientVersion(TestCtx) ->
     ?assert(is_integer(CVNum)),
     ?assert(is_integer(CFNum)).
 
-contextGetClientVersionBadContext(TestCtx) -> 
-    Context = dpiCall(
-        TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
-    ),
-    ?ASSERT_EX(
-        "Unable to retrieve resource context from arg0",
-        dpiCall(TestCtx, context_getClientVersion, [?BAD_REF])
-    ),
-    dpiCall(TestCtx, context_destroy, [Context]).
-
-% fails due to a wrong handle being passed
-contextGetClientVersionFail(TestCtx) ->
-    BindData = dpiCall(TestCtx, data_ctor, []),
-    ?ASSERT_EX(
-        "Unable to retrieve resource context from arg0",
-        dpiCall(TestCtx, context_getClientVersion, [BindData])
-    ),
-    dpiCall(TestCtx, data_release, [BindData]).
-
 %-------------------------------------------------------------------------------
 % Connection APIs
 %-------------------------------------------------------------------------------
 
-connCreate(#{context := Context} = TestCtx) ->
+connCreate(TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
-    Conn = dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
-            #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
-    ?assert(is_reference(Conn)),
-    dpiCall(TestCtx, conn_close, [Conn, [], <<>>]).
-
-connCreateBadContext(TestCtx) ->
-    #{tns := Tns, user := User, password := Password} = getConfig(),
+    CP = #{encoding => "AL32UTF8", nencoding => "AL32UTF8"},
     ?ASSERT_EX(
         "Unable to retrieve resource context from arg0",
-        dpiCall(
-            TestCtx, conn_create, [
-                ?BAD_REF, User, Password, Tns,
-                #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}
-            ]
-        )
-    ).
-
-connCreateBadUsername(#{context := Context} = TestCtx) ->
-    #{tns := Tns, user := _User, password := Password} = getConfig(),
+        dpiCall(TestCtx, conn_create, [?BAD_REF, User, Password, Tns, CP, #{}])
+    ),
+    Context = dpiCall(
+        TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
+    ),
     ?ASSERT_EX(
         "Unable to retrieve string/binary userName from arg1",
-        dpiCall(
-            TestCtx, conn_create,
-            [Context, badBin, Password, Tns,
-                #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]
-        )
-    ).
-
-connCreateBadPass(#{context := Context} = TestCtx) ->
-    #{tns := Tns, user := User, password := _Password} = getConfig(),
+        dpiCall(TestCtx, conn_create, [Context, badBin, Password, Tns, CP, #{}])
+    ),
     ?ASSERT_EX(
         "Unable to retrieve string/binary password from arg2",
-        dpiCall(
-            TestCtx, conn_create,
-            [Context, User, badBin, Tns,
-                #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]
-        )
-    ).
-
-connCreateBadTNS(#{context := Context} = TestCtx) ->
-    #{tns := _Tns, user := User, password := Password} = getConfig(),
+        dpiCall(TestCtx, conn_create, [Context, User, badBin, Tns, CP, #{}])
+    ),
     ?ASSERT_EX(
         "Unable to retrieve string/binary connectString from arg3",
         dpiCall(
-            TestCtx, conn_create,
-                [Context, User, Password, badBin,
-                #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]
+            TestCtx, conn_create, [Context, User, Password, badBin, CP, #{}]
         )
-    ).
-
-connCreateBadParams(#{context := Context} = TestCtx) ->
-    #{tns := Tns, user := User, password := Password} = getConfig(),
+    ),
     ?ASSERT_EX(
         "Unable to retrieve map commonParams from arg4",
         dpiCall(
             TestCtx, conn_create, [Context, User, Password, Tns, badMap, #{}]
         )
-    ).
-
-connCreateBadEncoding(#{context := Context} = TestCtx) ->
-    #{tns := Tns, user := User, password := Password} = getConfig(),
+    ),
     ?ASSERT_EX(
         "Unable to retrieve string",
         dpiCall(
             TestCtx, conn_create, [Context, User, Password, Tns,
                 #{encoding =>badList, nencoding => "AL32UTF8"}, #{}]
         )
-    ).
-
-connCreateBadNencoding(#{context := Context} = TestCtx) ->
-    #{tns := Tns, user := User, password := Password} = getConfig(),
+    ),
     ?ASSERT_EX(
         "Unable to retrieve string",
         dpiCall(
@@ -195,11 +138,7 @@ connCreateBadNencoding(#{context := Context} = TestCtx) ->
             [Context, User, Password, Tns,
                 #{encoding => "AL32UTF8", nencoding => badList}, #{}]
         )
-    ).
-
-% fails due to invalid user/pass combination
-connCreateFail(#{context := Context} = TestCtx) ->
-    #{tns := Tns} = getConfig(),
+    ),
     ?ASSERT_EX(
         #{},
         dpiCall(
@@ -207,58 +146,121 @@ connCreateFail(#{context := Context} = TestCtx) ->
             [Context, <<"Chuck">>, <<"Norris">>, Tns,
                 #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]
         )
-    ).
+    ),
+    Conn = dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
+            #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
+    ?assert(is_reference(Conn)),
+    dpiCall(TestCtx, conn_close, [Conn, [], <<>>]),
+    dpiCall(TestCtx, context_destroy, [Context]).
 
 connPrepareStmt(#{session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource connection from arg0",
+        dpiCall(
+            TestCtx, conn_prepareStmt, [?BAD_REF, false, <<"miau">>, <<>>]
+        )
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve bool/atom scrollable from arg1",
+        dpiCall(
+            TestCtx, conn_prepareStmt, [Conn, "badAtom", <<"miau">>, <<>>]
+        )
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve binary/string sql from arg2",
+        dpiCall(TestCtx, conn_prepareStmt, [Conn, false, badBinary, <<>>])
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve binary/string tag from arg3",
+        dpiCall(
+            TestCtx, conn_prepareStmt, [Conn, false, <<"miau">>, badBinary]
+        )
+    ),
+    % fails due to both SQL and Tag being empty
+    ?ASSERT_EX(
+        #{},
+        dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<>>, <<>>])
+    ),
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt, [Conn, false, <<"miau">>, <<"foo">>]
     ),
     ?assert(is_reference(Stmt)),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-connPrepareStmtEmptyTag(#{session := Conn} = TestCtx) ->
-    Stmt =
-        dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<"miau">>, <<>>]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-connPrepareStmtBadConn(TestCtx) ->
+connNewVar(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource connection from arg0",
         dpiCall(
-            TestCtx, conn_prepareStmt, [?BAD_REF, false, <<"miau">>, <<>>]
+            TestCtx, conn_newVar, 
+            [?BAD_REF, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE',
+                'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null]
         )
-    ).
-
-connPrepareStmtBadScrollable(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve bool/atom scrollable from arg1",
-        dpiCall(
-            TestCtx, conn_prepareStmt, [Conn, "badAtom", <<"miau">>, <<>>]
-        )
-    ).
-
-connPrepareStmtBadSQL(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve binary/string sql from arg2",
-        dpiCall(TestCtx, conn_prepareStmt, [Conn, false, badBinary, <<>>])
-    ).
-
-connPrepareStmtBadTag(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve binary/string tag from arg3",
-        dpiCall(
-            TestCtx, conn_prepareStmt, [Conn, false, <<"miau">>, badBinary]
-        )
-    ).
-
-% fails due to both SQL and Tag being empty
-connPrepareStmtFail(#{session := Conn} = TestCtx) ->
+    ),
     ?ASSERT_EX(
         #{},
-        dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<>>, <<>>])
-    ).
-
-connNewVar(#{session := Conn} = TestCtx) ->
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, "badAtom", 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false,
+                null]
+        )
+    ),
+    ?ASSERT_EX(
+        "wrong or unsupported dpiNativeType type",
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', "badAtom", 100, 0, false,
+                false, null]
+        )
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve uint size from arg3",
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                ?BAD_INT, 0, false, false, null]
+        )
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve uint size from arg4",
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 
+                100, ?BAD_INT, false, false, null]
+        )
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve atom sizeIsBytes from arg5",
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, "badAtom", false, null]
+        )
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve atom isArray from arg6",
+        dpiCall(
+            TestCtx, conn_newVar, 
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, false, "badAtom", null]
+        )
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve atom objType from arg7",
+        dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, false, false, "badAtom"]
+        )
+    ),
+    % fails due to array size being 0
+    ?ASSERT_EX(
+        #{},
+        dpiCall(
+            TestCtx, conn_newVar,
+                [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE',
+                'DPI_NATIVE_TYPE_DOUBLE', 0, 0, false, false, null]
+        )
+    ),
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, 
         [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
@@ -271,204 +273,81 @@ connNewVar(#{session := Conn} = TestCtx) ->
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]).
 
-connNewVarBadConn(TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource connection from arg0",
-        dpiCall(
-            TestCtx, conn_newVar, 
-            [?BAD_REF, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE',
-                'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null]
-        )
-    ).
-
-connNewVarBadOraType(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        #{},
-        dpiCall(
-            TestCtx, conn_newVar, 
-            [Conn, "badAtom", 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false,
-                null]
-        )
-    ).
-
-connNewVarBadDpiType(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "wrong or unsupported dpiNativeType type",
-        dpiCall(
-            TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', "badAtom", 100, 0, false,
-                false, null]
-        )
-    ).
-
-connNewVarBadArraySize(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve uint size from arg3",
-        dpiCall(
-            TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                ?BAD_INT, 0, false, false, null]
-        )
-    ).
-
-connNewVarBadSize(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve uint size from arg4",
-        dpiCall(
-            TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 
-                100, ?BAD_INT, false, false, null]
-        )
-    ).
-
-connNewVarBadSizeIsBytes(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve atom sizeIsBytes from arg5",
-        dpiCall(
-            TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                100, 0, "badAtom", false, null]
-        )
-    ).
-
-connNewVarBadArray(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve atom isArray from arg6",
-        dpiCall(
-            TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                100, 0, false, "badAtom", null]
-        )
-    ).
-
-connNewVarBadObjType(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve atom objType from arg7",
-        dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                100, 0, false, false, "badAtom"]
-        )
-    ).
-
-% fails due to array size being 0
-connNewVarFail(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        #{},
-        dpiCall(
-            TestCtx, conn_newVar,
-                [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE',
-                'DPI_NATIVE_TYPE_DOUBLE', 0, 0, false, false, null]
-        )
-    ).
-
-connCommit(#{session := Conn} = TestCtx) ->
-    Result = dpiCall(TestCtx, conn_commit, [Conn]),
-    ?assertEqual(ok, Result).
-  
-connCommitBadConn(TestCtx) ->
+connCommit(#{context := Context, session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource connection from arg0",
         dpiCall(TestCtx, conn_commit, [?BAD_REF])
-    ).
-
-% fails due to the reference being wrong
-connCommitFail(#{context := Context} = TestCtx) ->
+    ),
+    % fails due to the reference being wrong
     ?ASSERT_EX(
         "Unable to retrieve resource connection from arg0",
         dpiCall(TestCtx, conn_commit, [Context])
-    ).
-
-connRollback(#{session := Conn} = TestCtx) ->
-    Result = dpiCall(TestCtx, conn_rollback, [Conn]),
+    ),
+    Result = dpiCall(TestCtx, conn_commit, [Conn]),
     ?assertEqual(ok, Result).
   
-connRollbackBadConn(TestCtx) ->
+connRollback(#{context := Context, session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource connection from arg0",
         dpiCall(TestCtx, conn_rollback, [?BAD_REF])
-    ).
-
-% fails due to the reference being wrong
-connRollbackFail(#{context := Context} = TestCtx) ->
+    ),
+    % fails due to the reference being wrong
     ?ASSERT_EX(
         "Unable to retrieve resource connection from arg0",
         dpiCall(TestCtx, conn_rollback, [Context])
-    ).
-
-connPing(#{session := Conn} = TestCtx) ->
-    Result = dpiCall(TestCtx, conn_ping, [Conn]),
+    ),
+    Result = dpiCall(TestCtx, conn_rollback, [Conn]),
     ?assertEqual(ok, Result).
   
-connPingBadConn(TestCtx) ->
+connPing(#{context := Context, session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource connection from arg0",
-        dpiCall(TestCtx, conn_ping, [?BAD_REF])).
-
-% fails due to the reference being wrong
-connPingFail(#{context := Context} = TestCtx) ->
+        dpiCall(TestCtx, conn_ping, [?BAD_REF])
+    ),
+    % fails due to the reference being wrong
     ?ASSERT_EX(
         "Unable to retrieve resource connection from arg0",
         dpiCall(TestCtx, conn_ping, [Context])
-    ).
-
-connClose(#{context := Context} = TestCtx) ->
-    #{tns := Tns, user := User, password := Password} = getConfig(),
-    Conn = dpiCall(
-        TestCtx, conn_create, [Context, User, Password, Tns,
-        #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]
     ),
-    Result = dpiCall(TestCtx, conn_close, [Conn, [], <<>>]),
+    Result = dpiCall(TestCtx, conn_ping, [Conn]),
     ?assertEqual(ok, Result).
-
-connCloseWithModes(#{context := Context} = TestCtx) ->
+  
+connClose(#{context := Context, session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource connection from arg0",
+        dpiCall(TestCtx, conn_close, [?BAD_REF, [], <<>>])
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve atom list modes, not a list from arg1",
+        dpiCall(TestCtx, conn_close, [Conn, badList, <<>>])
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve mode list value from arg1",
+        dpiCall(TestCtx, conn_close, [Conn, ["badAtom"], <<>>])
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve DPI_MODE atom from arg1",
+        dpiCall(TestCtx, conn_close, [Conn, [wrongAtom], <<>>])
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve binary/string tag from arg2",
+        dpiCall(TestCtx, conn_close, [Conn, [], badBinary])
+    ),
+    % fails due to the reference being wrong
+    ?ASSERT_EX(
+        "Unable to retrieve resource connection from arg0",
+        dpiCall(TestCtx, conn_close, [Context, [], <<>>])
+    ),
     #{tns := Tns, user := User, password := Password} = getConfig(),
-    Conn = dpiCall(
+    Conn1 = dpiCall(
         TestCtx, conn_create, [Context, User, Password, Tns,
         #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]
     ),
     % the other two don't work without a session pool
     Result = dpiCall(
-        TestCtx, conn_close, [Conn, ['DPI_MODE_CONN_CLOSE_DEFAULT'], <<>>]
+        TestCtx, conn_close, [Conn1, ['DPI_MODE_CONN_CLOSE_DEFAULT'], <<>>]
     ),
     ?assertEqual(ok, Result).
-  
-connCloseBadConn(TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource connection from arg0",
-        dpiCall(TestCtx, conn_close, [?BAD_REF, [], <<>>])
-    ).
-
-connCloseBadModes(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve atom list modes, not a list from arg1",
-        dpiCall(TestCtx, conn_close, [Conn, badList, <<>>])
-    ).
-
-connCloseBadModesInside(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve mode list value from arg1",
-        dpiCall(TestCtx, conn_close, [Conn, ["badAtom"], <<>>])
-    ).
-
-connCloseInvalidMode(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve DPI_MODE atom from arg1",
-        dpiCall(TestCtx, conn_close, [Conn, [wrongAtom], <<>>])
-    ).
-
-connCloseBadTag(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve binary/string tag from arg2",
-        dpiCall(TestCtx, conn_close, [Conn, [], badBinary])
-    ).
-
-% fails due to the reference being wrong
-connCloseFail(#{context := Context} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource connection from arg0",
-        dpiCall(TestCtx, conn_close, [Context, [], <<>>])
-    ).
 
 connGetServerVersion(#{session := Conn} = TestCtx) ->
     #{
@@ -563,7 +442,7 @@ stmtExecuteMany(#{session := Conn} = TestCtx) ->
         "mode must be a list of atoms",
         dpiCall(TestCtx, stmt_executeMany, [Stmt, ["badAtom"], 0])
     ),
-    #{var := Var, data := DataList} = dpiCall(
+    #{var := Var, data := _DataList} = dpiCall(
         TestCtx, conn_newVar,
         [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 10,
@@ -577,7 +456,7 @@ stmtExecuteMany(#{session := Conn} = TestCtx) ->
         TestCtx, var_setFromBytes,
         [
             Var, Idx,
-            << <<(lists:nth(random:uniform(DataLen), Data))>>
+            << <<(lists:nth(rand:uniform(DataLen), Data))>>
                 || _ <- lists:seq(1, 10) >>
         ]
     ) || Idx <- lists:seq(0, 9)],
@@ -776,7 +655,7 @@ stmtGetQueryInfoFail(#{session := Conn} = TestCtx) ->
     ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-stmtGetInfoBadStmt(#{session := Conn} = TestCtx) ->
+stmtGetInfoBadStmt(TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource statement from arg0",
         dpiCall(TestCtx, stmt_getInfo, [?BAD_REF])
@@ -2400,65 +2279,18 @@ cleanup(_) -> ok.
 
 -define(NO_CONTEXT_TESTS, [
     ?F(contextCreate),
-    ?F(contextCreateBadMaj),
-    ?F(contextCreateBadMin),
-    ?F(contextCreateFail),
     ?F(contextDestroy),
-    ?F(contextDestroyBadContext),
-    ?F(contextDestroyBadContextState),
     ?F(contextGetClientVersion),
-    ?F(contextGetClientVersionBadContext),
-    ?F(contextGetClientVersionFail)
-]).
-
--define(AFTER_CONTEXT_TESTS, [
-    ?F(connCreate),
-    ?F(connCreateBadContext),
-    ?F(connCreateBadUsername),
-    ?F(connCreateBadPass),
-    ?F(connCreateBadTNS),
-    ?F(connCreateBadUsername),
-    ?F(connCreateBadParams),
-    ?F(connCreateBadEncoding),
-    ?F(connCreateBadNencoding),
-    ?F(connCreateFail)
+    ?F(connCreate)
 ]).
 
 -define(AFTER_CONNECTION_TESTS, [
     ?F(connPrepareStmt),
-    ?F(connPrepareStmtEmptyTag),
-    ?F(connPrepareStmtBadConn),
-    ?F(connPrepareStmtBadScrollable),
-    ?F(connPrepareStmtBadSQL),
-    ?F(connPrepareStmtBadTag),
-    ?F(connPrepareStmtFail),
     ?F(connNewVar),
-    ?F(connNewVarBadConn),
-    ?F(connNewVarBadOraType),
-    ?F(connNewVarBadDpiType),
-    ?F(connNewVarBadArraySize),
-    ?F(connNewVarBadSize),
-    ?F(connNewVarBadSizeIsBytes),
-    ?F(connNewVarBadArray),
-    ?F(connNewVarBadObjType),
-    ?F(connNewVarFail),
     ?F(connCommit),
-    ?F(connCommitBadConn),
-    ?F(connCommitFail),
     ?F(connRollback),
-    ?F(connRollbackBadConn),
-    ?F(connRollbackFail),
     ?F(connPing),
-    ?F(connPingBadConn),
-    ?F(connPingFail),
     ?F(connClose),
-    ?F(connCloseWithModes),
-    ?F(connCloseBadConn),
-    ?F(connCloseBadModes),
-    ?F(connCloseBadModesInside),
-    ?F(connCloseInvalidMode),
-    ?F(connCloseBadTag),
-    ?F(connCloseFail),
     ?F(connGetServerVersion),
     ?F(connGetServerVersionBadConn),
     ?F(connGetServerVersionFail),
@@ -2655,14 +2487,6 @@ unsafe_no_context_test_() ->
         ?W(?NO_CONTEXT_TESTS)
     }.
 
-unsafe_context_test_() ->
-    {
-        setup,
-        fun() -> setup_context(#{safe => false}) end,
-        fun cleanup/1,
-        ?W(?AFTER_CONTEXT_TESTS)
-    }.
-
 unsafe_session_test_() ->
     {
         setup,
@@ -2679,14 +2503,6 @@ no_context_test_() ->
         ?W(?NO_CONTEXT_TESTS)
     }.
 
-context_test_() ->
-    {
-        setup,
-        fun() -> setup_context(#{safe => true}) end,
-        fun cleanup/1,
-        ?W(?AFTER_CONTEXT_TESTS)
-    }.
-
 session_test_() ->
     {
         setup,
@@ -2694,3 +2510,22 @@ session_test_() ->
         fun cleanup/1,
         ?W(?AFTER_CONNECTION_TESTS)
     }.
+
+load_test() -> 
+    ?assertEqual(ok, dpi:load_unsafe()),
+    c:c(dpi),
+
+    ?debugMsg("triggering upgrade callback"),
+    ?assertEqual(ok, dpi:load_unsafe()),
+    % at this point, both old and current dpi code might be "bad"
+
+    % delete the old code
+    ?debugMsg("triggering unload callback"),
+    code:purge(dpi),
+
+    % make the new code old
+    code:delete(dpi),
+
+    % delete that old code, too. Now all the code is gone
+    ?debugMsg("triggering unload callback"),
+    code:purge(dpi).

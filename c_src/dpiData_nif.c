@@ -365,28 +365,14 @@ DPI_NIF_FUN(data_get)
         break;
     case DPI_NATIVE_TYPE_STMT:
     {
-        dpiStmt_res *stmtRes = NULL;
-        if (!dataRes->stmtRes)
+        dpiStmt_res *stmtRes = (dpiStmt_res *)dataRes->stmtRes;
+        if (!stmtRes)
         {
             // first time
             stmtRes = enif_alloc_resource(dpiStmt_type, sizeof(dpiStmt_res));
-            stmtRes->stmt = data->value.asStmt;
             dataRes->stmtRes = stmtRes;
         }
-        else
-        {
-            // possible reuse attempt
-            stmtRes = (dpiStmt_res *)dataRes->stmtRes;
-            if (stmtRes->stmt != data->value.asStmt)
-            {
-                // ref cursor changed
-                enif_release_resource(stmtRes);
-                stmtRes = enif_alloc_resource(
-                    dpiStmt_type, sizeof(dpiStmt_res));
-                stmtRes->stmt = data->value.asStmt;
-                dataRes->stmtRes = stmtRes;
-            }
-        }
+        stmtRes->stmt = data->value.asStmt;
         dataRet = enif_make_resource(env, stmtRes);
     }
     break;
