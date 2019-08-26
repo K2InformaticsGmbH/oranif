@@ -1,6 +1,10 @@
 -module(cover_tests).
 -include_lib("eunit/include/eunit.hrl").
 
+%-------------------------------------------------------------------------------
+% MACROs
+%-------------------------------------------------------------------------------
+
 -define(DPI_MAJOR_VERSION, 3).
 -define(DPI_MINOR_VERSION, 0).
 
@@ -14,10 +18,6 @@
         __StmtExecResult
     end)()
 ).
-
-%-------------------------------------------------------------------------------
-% MACROs
-%-------------------------------------------------------------------------------
 
 -define(BAD_INT, -16#FFFFFFFFFFFFFFFF1).
 -define(BAD_REF, make_ref()).
@@ -43,7 +43,8 @@ contextCreate(TestCtx) ->
     ),
     % fails due to nonsense major version
     ?ASSERT_EX(
-        #{},
+        #{message := "DPI-1020: version 1337.0 is not supported by ODPI-C"
+                     " library version 3.0"},
         dpiCall(TestCtx, context_create, [1337, ?DPI_MINOR_VERSION])
     ),
     Context = dpiCall(
@@ -64,7 +65,7 @@ contextDestroy(TestCtx) ->
     ?assertEqual(ok, dpiCall(TestCtx, context_destroy, [Context])),
     % try to destroy it again
     ?ASSERT_EX(
-        #{},
+        #{message := "DPI-1002: invalid dpiContext handle"},
         dpiCall(TestCtx, context_destroy, [Context])
     ).
 
@@ -83,9 +84,8 @@ contextGetClientVersion(TestCtx) ->
     Context = dpiCall(
         TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
     ),
-    #{releaseNum := CRNum, versionNum := CVNum, fullVersionNum := CFNum } = 
+    #{releaseNum := CRNum, versionNum := CVNum, fullVersionNum := CFNum} =
         dpiCall(TestCtx, context_getClientVersion, [Context]),
-
     ?assert(is_integer(CRNum)),
     ?assert(is_integer(CVNum)),
     ?assert(is_integer(CFNum)).
@@ -127,28 +127,24 @@ connCreate(TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve string",
         dpiCall(
-            TestCtx, conn_create, [Context, User, Password, Tns,
-                #{encoding =>badList, nencoding => "AL32UTF8"}, #{}]
+            TestCtx, conn_create,
+            [Context, User, Password, Tns, CP#{encoding => badList}, #{}]
         )
     ),
     ?ASSERT_EX(
         "Unable to retrieve string",
         dpiCall(
             TestCtx, conn_create,
-            [Context, User, Password, Tns,
-                #{encoding => "AL32UTF8", nencoding => badList}, #{}]
+            [Context, User, Password, Tns, CP#{nencoding => badList}, #{}]
         )
     ),
     ?ASSERT_EX(
-        #{},
-        dpiCall(
-            TestCtx, conn_create,
-            [Context, <<"Chuck">>, <<"Norris">>, Tns,
-                #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]
-        )
+        #{message := "ORA-01017: invalid username/password; logon denied"},
+        dpiCall(TestCtx, conn_create, [Context, <<"C">>, <<"N">>, Tns, CP, #{}])
     ),
-    Conn = dpiCall(TestCtx, conn_create, [Context, User, Password, Tns,
-            #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]),
+    Conn = dpiCall(
+        TestCtx, conn_create, [Context, User, Password, Tns, CP, #{}]
+    ),
     ?assert(is_reference(Conn)),
     dpiCall(TestCtx, conn_close, [Conn, [], <<>>]),
     dpiCall(TestCtx, context_destroy, [Context]).
@@ -178,7 +174,7 @@ connPrepareStmt(#{session := Conn} = TestCtx) ->
     ),
     % fails due to both SQL and Tag being empty
     ?ASSERT_EX(
-        #{},
+        #{message := "ORA-24373: invalid length specified for statement"},
         dpiCall(TestCtx, conn_prepareStmt, [Conn, false, <<>>, <<>>])
     ),
     Stmt = dpiCall(
@@ -269,17 +265,21 @@ connNewVar(#{session := Conn} = TestCtx) ->
     ),
     % fails due to array size being 0
     ?ASSERT_EX(
-        #{},
+        #{message := "DPI-1031: array size cannot be zero"},
         dpiCall(
             TestCtx, conn_newVar,
-                [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE',
-                'DPI_NATIVE_TYPE_DOUBLE', 0, 0, false, false, null]
+            [
+                Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                0, 0, false, false, null
+            ]
         )
     ),
     #{var := Var, data := Data} = dpiCall(
-        TestCtx, conn_newVar, 
-        [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-            100, 0, false, false, null]
+        TestCtx, conn_newVar,
+        [
+            Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+            100, 0, false, false, null
+        ]
     ),
     ?assert(is_reference(Var)),
     ?assert(is_list(Data)),
@@ -355,8 +355,11 @@ connClose(#{context := Context, session := Conn} = TestCtx) ->
     ),
     #{tns := Tns, user := User, password := Password} = getConfig(),
     Conn1 = dpiCall(
-        TestCtx, conn_create, [Context, User, Password, Tns,
-        #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}]
+        TestCtx, conn_create,
+        [
+            Context, User, Password, Tns,
+            #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}
+        ]
     ),
     % the other two don't work without a session pool
     Result = dpiCall(
@@ -384,22 +387,14 @@ connGetServerVersion(#{session := Conn} = TestCtx) ->
 connSetClientIdentifier(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource connection from arg0",
-        dpiCall(
-            TestCtx, conn_setClientIdentifier,
-            [?BAD_REF, <<"myCoolConnection">>]
-        )
+        dpiCall(TestCtx, conn_setClientIdentifier, [?BAD_REF, <<"myCoolConn">>])
     ),
     ?ASSERT_EX(
         "Unable to retrieve string/binary value from arg1",
-        dpiCall(
-            TestCtx, conn_setClientIdentifier, [Conn, badBinary]
-        )
+        dpiCall(TestCtx, conn_setClientIdentifier, [Conn, badBinary])
     ),
     ?assertEqual(ok,
-        dpiCall(
-            TestCtx, conn_setClientIdentifier, 
-            [Conn, <<"myCoolConnection">>]
-        )
+        dpiCall(TestCtx, conn_setClientIdentifier, [Conn, <<"myCoolConn">>])
     ).
 
 %-------------------------------------------------------------------------------
@@ -494,7 +489,7 @@ stmtExecute(#{session := Conn} = TestCtx) ->
         [Conn, false, <<"all your base are belong to us">>, <<>>]
     ),
     ?ASSERT_EX(
-        #{},
+        #{message := "ORA-00900: invalid SQL statement"},
         dpiCall(TestCtx, stmt_execute, [Stmt1, []])
     ),
     dpiCall(TestCtx, stmt_close, [Stmt1, <<>>]).
@@ -536,12 +531,13 @@ stmtGetQueryValue(#{session := Conn} = TestCtx) ->
     ),
     % fails due to the fetch not being done
     ?ASSERT_EX(
-        #{},
+        #{message := "DPI-1029: no row currently fetched"},
         dpiCall(TestCtx, stmt_getQueryValue, [Stmt, 1])
     ),
     dpiCall(TestCtx, stmt_fetch, [Stmt]),
-    #{nativeTypeNum := Type, data := Result} =
-        dpiCall(TestCtx, stmt_getQueryValue, [Stmt, 1]),
+    #{nativeTypeNum := Type, data := Result} = dpiCall(
+        TestCtx, stmt_getQueryValue, [Stmt, 1]
+    ),
     ?assert(is_atom(Type)),
     ?assert(is_reference(Result)),
     dpiCall(TestCtx, data_release, [Result]),
@@ -561,8 +557,9 @@ stmtGetQueryInfo(#{session := Conn} = TestCtx) ->
         "Unable to retrieve uint pos from arg1",
         dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, ?BAD_INT])
     ),
-    #{name := Name, nullOk := NullOk,
-        typeInfo := #{clientSizeInBytes := ClientSizeInBytes,
+    #{
+        name := Name, nullOk := NullOk, typeInfo := #{
+            clientSizeInBytes := ClientSizeInBytes,
             dbSizeInBytes := DbSizeInBytes,
             defaultNativeTypeNum := DefaultNativeTypeNum,
             fsPrecision := FsPrecision,
@@ -571,7 +568,6 @@ stmtGetQueryInfo(#{session := Conn} = TestCtx) ->
             scale := Scale, sizeInChars := SizeInChars
         }
     } = dpiCall(TestCtx, stmt_getQueryInfo, [Stmt, 1]),
-
     ?assert(is_list(Name)),
     ?assert(is_atom(NullOk)),
     ?assert(is_integer(ClientSizeInBytes)),
@@ -584,7 +580,6 @@ stmtGetQueryInfo(#{session := Conn} = TestCtx) ->
     ?assert(is_integer(Precision)),
     ?assert(is_integer(Scale)),
     ?assert(is_integer(SizeInChars)),
-    
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtGetInfo(#{session := Conn} = TestCtx) ->
@@ -648,7 +643,7 @@ stmtGetNumQueryColumns(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
     % fails due to the statement already released
     ?ASSERT_EX(
-        #{},
+        #{message := "DPI-1039: statement was already closed"},
         dpiCall(TestCtx, stmt_getNumQueryColumns, [Stmt])
     ).
 
@@ -661,11 +656,9 @@ stmtBindValueByPos(#{session := Conn} = TestCtx) ->
             [?BAD_REF, 1, 'DPI_NATIVE_TYPE_INT64', BindData]
         )
     ),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
+        [Conn, false, <<"insert into dual values (:A)">>, <<>>]
     ),
     ?ASSERT_EX(
         "Unable to retrieve uint pos from arg1",
@@ -700,15 +693,12 @@ stmtBindValueByPos(#{session := Conn} = TestCtx) ->
         )
     ),
     dpiCall(TestCtx, data_release, [BindData]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtBindValueByName(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
+        [Conn, false, <<"insert into dual values (:A)">>, <<>>]
     ),
     ?ASSERT_EX(
         "Unable to retrieve resource data from arg3",
@@ -753,15 +743,12 @@ stmtBindValueByName(#{session := Conn} = TestCtx) ->
         )
     ),
     dpiCall(TestCtx, data_release, [BindData]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtBindByPos(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
+        [Conn, false, <<"insert into dual values (:A)">>, <<>>]
     ),
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, 
@@ -785,15 +772,12 @@ stmtBindByPos(#{session := Conn} = TestCtx) ->
     ?assertEqual(ok, dpiCall(TestCtx, stmt_bindByPos, [Stmt, 1, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtBindByName(#{session := Conn} = TestCtx) -> 
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>), 
-    ?EXEC_STMT(Conn, <<"create table test_dpi (a integer)">>), 
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt,
-        [Conn, false, <<"insert into test_dpi values (:A)">>, <<>>]
+        [Conn, false, <<"insert into dual values (:A)">>, <<>>]
     ),
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar,
@@ -816,14 +800,13 @@ stmtBindByName(#{session := Conn} = TestCtx) ->
     ),
     % fails due to the position being invalid
     ?ASSERT_EX(
-        #{},
+        #{message := "ORA-01036: illegal variable name/number"},
         dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"B">>, Var])
     ),
     ?assertEqual(ok, dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"A">>, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    ?EXEC_STMT(Conn, <<"drop table test_dpi">>).
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
 stmtDefine(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(
@@ -852,7 +835,7 @@ stmtDefine(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     % fails due to the pos being invalid
     ?ASSERT_EX(
-        #{},
+        #{message := "DPI-1028: query position 12345 is invalid"},
         dpiCall(TestCtx, stmt_define, [Stmt, 12345, Var])
     ),
     ?assertEqual(ok, dpiCall(TestCtx, stmt_define, [Stmt, 1, Var])),
@@ -903,24 +886,30 @@ stmtDefineValue(#{session := Conn} = TestCtx) ->
         "Unable to retrieve uint size from arg4",
         dpiCall(
             TestCtx, stmt_defineValue,
-            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
-                ?BAD_INT, false, null]
+            [
+                Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
+                ?BAD_INT, false, null
+            ]
         )
     ),
     ?ASSERT_EX(
         "Unable to retrieve bool/atom sizeIsBytes from arg5",
         dpiCall(
             TestCtx, stmt_defineValue,
-            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0,
-                "badAtom", null]
+            [
+                Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
+                0, "badAtom", null
+            ]
         )
     ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertEqual(ok, 
         dpiCall(
             TestCtx, stmt_defineValue,
-            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0,
-                false, null]
+            [
+                Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
+                0, false, null
+            ]
         )
     ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
@@ -951,7 +940,8 @@ varSetNumElementsInArray(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, var_setNumElementsInArray, [?BAD_REF, 100])
     ),
     #{var := Var, data := Data} = dpiCall(
-        TestCtx, conn_newVar, [
+        TestCtx, conn_newVar,
+        [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
             true, true, null
         ]
@@ -970,7 +960,8 @@ varSetFromBytes(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, var_setFromBytes, [?BAD_REF, 0, <<"abc">>])
     ),
     #{var := Var, data := Data} = dpiCall(
-        TestCtx, conn_newVar, [
+        TestCtx, conn_newVar,
+        [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
             true, true, null
         ]
@@ -1000,7 +991,8 @@ varRelease(#{session := Conn} = TestCtx) ->
         dpiCall(TestCtx, var_release, [?BAD_REF])
     ),
     #{var := Var, data := Data} = dpiCall(
-        TestCtx, conn_newVar, [
+        TestCtx, conn_newVar,
+        [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
             true, true, null
         ]
@@ -1229,62 +1221,7 @@ dataGet(#{session := Conn} = TestCtx) ->
         "Unable to retrieve resource data from arg0",
         dpiCall(TestCtx, data_get, [?BAD_REF])
     ),
-    [begin
-        #{var := Var, data := [Data]} = dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, OraType, NativeType, 1, 0, false, false, null]
-        ),
-        if Test == null -> dpiCall(TestCtx, data_setIsNull, [Data, true]);
-        true -> dpiCall(TestCtx, data_setIsNull, [Data, false])
-        end,
-        case Test of
-            null -> ?assertEqual(null, dpiCall(TestCtx, data_get, [Data]));
-            int ->
-                ?assert(is_integer(dpiCall(TestCtx, data_getInt64, [Data]))),
-                ?assert(is_integer(dpiCall(TestCtx, data_get, [Data])));
-            float -> ?assert(is_float(dpiCall(TestCtx, data_get, [Data])));
-            ts ->
-                #{
-                    year := Year, month := Month, day := Day, hour := Hour,
-                    minute := Minute, second := Second, fsecond := Fsecond,
-                    tzHourOffset := TzHourOffset,
-                    tzMinuteOffset := TzMinuteOffset
-                } = dpiCall(TestCtx, data_get, [Data]),
-                ?assert(is_integer(Year)),
-                ?assert(is_integer(Month)),
-                ?assert(is_integer(Day)),
-                ?assert(is_integer(Hour)),
-                ?assert(is_integer(Minute)),
-                ?assert(is_integer(Second)),
-                ?assert(is_integer(Fsecond)),
-                ?assert(is_integer(TzHourOffset)),
-                ?assert(is_integer(TzMinuteOffset));
-            intvlds ->
-                #{
-                    days := Days, hours := Hours, minutes := Minutes, 
-                    seconds := Seconds, fseconds := Fseconds
-                } = dpiCall(TestCtx, data_get, [Data]),
-                ?assert(is_integer(Days)),
-                ?assert(is_integer(Hours)),
-                ?assert(is_integer(Minutes)),
-                ?assert(is_integer(Seconds)),
-                ?assert(is_integer(Fseconds));
-            intvlym ->
-                #{
-                    years := Years,
-                    months := Months
-                } = dpiCall(TestCtx, data_get, [Data]),
-                ?assert(is_integer(Years)),
-                ?assert(is_integer(Months));
-            unsupported ->
-                ?ASSERT_EX(
-                    "Unsupported nativeTypeNum",
-                    dpiCall(TestCtx, data_get, [Data])
-                )
-        end,
-        dpiCall(TestCtx, data_release, [Data]),
-        dpiCall(TestCtx, var_release, [Var])
-    end || {Test, OraType, NativeType} <- [
+    Types = [
         {null, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM'},
         {int, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64'},
         {int, 'DPI_ORACLE_TYPE_NATIVE_UINT', 'DPI_NATIVE_TYPE_UINT64'},
@@ -1294,7 +1231,68 @@ dataGet(#{session := Conn} = TestCtx) ->
         {intvlds, 'DPI_ORACLE_TYPE_INTERVAL_DS', 'DPI_NATIVE_TYPE_INTERVAL_DS'},
         {intvlym, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM'},
         {unsupported, 'DPI_ORACLE_TYPE_CLOB', 'DPI_NATIVE_TYPE_LOB'}
-    ]].
+    ],
+    lists:foreach(
+        fun({Test, OraType, NativeType}) ->
+            #{var := Var, data := [Data]} = dpiCall(
+                TestCtx, conn_newVar,
+                [Conn, OraType, NativeType, 1, 0, false, false, null]
+            ),
+            if Test == null -> dpiCall(TestCtx, data_setIsNull, [Data, true]);
+            true -> dpiCall(TestCtx, data_setIsNull, [Data, false])
+            end,
+            case Test of
+                null -> ?assertEqual(null, dpiCall(TestCtx, data_get, [Data]));
+                int ->
+                    ?assert(
+                        is_integer(dpiCall(TestCtx, data_getInt64, [Data]))
+                    ),
+                    ?assert(is_integer(dpiCall(TestCtx, data_get, [Data])));
+                float -> ?assert(is_float(dpiCall(TestCtx, data_get, [Data])));
+                ts ->
+                    #{
+                        year := Year, month := Month, day := Day, hour := Hour,
+                        minute := Minute, second := Second, fsecond := Fsecond,
+                        tzHourOffset := TzHourOffset,
+                        tzMinuteOffset := TzMinuteOffset
+                    } = dpiCall(TestCtx, data_get, [Data]),
+                    ?assert(is_integer(Year)),
+                    ?assert(is_integer(Month)),
+                    ?assert(is_integer(Day)),
+                    ?assert(is_integer(Hour)),
+                    ?assert(is_integer(Minute)),
+                    ?assert(is_integer(Second)),
+                    ?assert(is_integer(Fsecond)),
+                    ?assert(is_integer(TzHourOffset)),
+                    ?assert(is_integer(TzMinuteOffset));
+                intvlds ->
+                    #{
+                        days := Days, hours := Hours, minutes := Minutes, 
+                        seconds := Seconds, fseconds := Fseconds
+                    } = dpiCall(TestCtx, data_get, [Data]),
+                    ?assert(is_integer(Days)),
+                    ?assert(is_integer(Hours)),
+                    ?assert(is_integer(Minutes)),
+                    ?assert(is_integer(Seconds)),
+                    ?assert(is_integer(Fseconds));
+                intvlym ->
+                    #{
+                        years := Years,
+                        months := Months
+                    } = dpiCall(TestCtx, data_get, [Data]),
+                    ?assert(is_integer(Years)),
+                    ?assert(is_integer(Months));
+                unsupported ->
+                    ?ASSERT_EX(
+                        "Unsupported nativeTypeNum",
+                        dpiCall(TestCtx, data_get, [Data])
+                    )
+            end,
+            dpiCall(TestCtx, data_release, [Data]),
+            dpiCall(TestCtx, var_release, [Var])
+        end,
+        Types
+    ).
 
 dataGetBinary(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
@@ -1451,7 +1449,8 @@ setup_connecion(TestCtx) ->
     #{tns := Tns, user := User, password := Password} = getConfig(),
     ContextCtx#{
         session => dpiCall(
-            ContextCtx, conn_create, [
+            ContextCtx, conn_create,
+            [
                 Context, User, Password, Tns,
                 #{encoding => "AL32UTF8", nencoding => "AL32UTF8"}, #{}
             ]
