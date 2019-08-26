@@ -192,64 +192,79 @@ connNewVar(#{session := Conn} = TestCtx) ->
         "Unable to retrieve resource connection from arg0",
         dpiCall(
             TestCtx, conn_newVar, 
-            [?BAD_REF, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE',
-                'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null]
+            [
+                ?BAD_REF, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE',
+                'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false, null
+            ]
         )
     ),
     ?ASSERT_EX(
-        #{},
+        "wrong or unsupported dpiOracleType type",
         dpiCall(
             TestCtx, conn_newVar, 
-            [Conn, "badAtom", 'DPI_NATIVE_TYPE_DOUBLE', 100, 0, false, false,
-                null]
+            [
+                Conn, 'BAD_DPI_ORACLE_TYPE', 'DPI_NATIVE_TYPE_DOUBLE', 100, 0,
+                false, false, null
+            ]
         )
     ),
     ?ASSERT_EX(
         "wrong or unsupported dpiNativeType type",
         dpiCall(
             TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', "badAtom", 100, 0, false,
-                false, null]
+            [
+                Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'BAD_DPI_NATIVE_TYPE', 100, 0, false, false, null
+            ]
         )
     ),
     ?ASSERT_EX(
         "Unable to retrieve uint size from arg3",
         dpiCall(
             TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                ?BAD_INT, 0, false, false, null]
+            [
+                Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                ?BAD_INT, 0, false, false, null
+            ]
         )
     ),
     ?ASSERT_EX(
         "Unable to retrieve uint size from arg4",
         dpiCall(
             TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 
-                100, ?BAD_INT, false, false, null]
+            [
+                Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 
+                100, ?BAD_INT, false, false, null
+            ]
         )
     ),
     ?ASSERT_EX(
         "Unable to retrieve atom sizeIsBytes from arg5",
         dpiCall(
             TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                100, 0, "badAtom", false, null]
+            [
+                Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, "badAtom", false, null
+            ]
         )
     ),
     ?ASSERT_EX(
         "Unable to retrieve atom isArray from arg6",
         dpiCall(
             TestCtx, conn_newVar, 
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                100, 0, false, "badAtom", null]
+            [
+                Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, false, "badAtom", null
+            ]
         )
     ),
     ?ASSERT_EX(
         "Unable to retrieve atom objType from arg7",
         dpiCall(
             TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                100, 0, false, false, "badAtom"]
+            [
+                Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+                100, 0, false, false, "badAtom"
+            ]
         )
     ),
     % fails due to array size being 0
@@ -815,89 +830,90 @@ stmtDefine(#{session := Conn} = TestCtx) ->
         TestCtx, conn_prepareStmt,
         [Conn, false, <<"select 1 from dual">>, <<>>]
     ),
-    #{var := Var, data := Data} =
-        dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                100, 0, false, false, null]
-        ),
+    #{var := Var, data := Data} = dpiCall(
+        TestCtx, conn_newVar,
+        [
+            Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
+            100, 0, false, false, null
+        ]
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve resource statement from arg0",
+        dpiCall(TestCtx, stmt_define, [?BAD_REF, 1, Var])
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve uint pos from arg1",
+        dpiCall(TestCtx, stmt_define, [Stmt, ?BAD_INT, Var])
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve resource var from arg2",
+        dpiCall(TestCtx, stmt_define, [Stmt, 1, ?BAD_REF])
+    ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
+    % fails due to the pos being invalid
+    ?ASSERT_EX(
+        #{},
+        dpiCall(TestCtx, stmt_define, [Stmt, 12345, Var])
+    ),
     ?assertEqual(ok, dpiCall(TestCtx, stmt_define, [Stmt, 1, Var])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-stmtDefineBadStmt(#{session := Conn} = TestCtx) -> 
-    #{var := Var, data := Data} =
-        dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                100, 0, false, false, null]
-        ),
+stmtDefineValue(#{session := Conn} = TestCtx) -> 
     ?ASSERT_EX(
         "Unable to retrieve resource statement from arg0",
-        dpiCall(TestCtx, stmt_define, [?BAD_REF, 1, Var])
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [
+                ?BAD_REF, 1, 'DPI_ORACLE_TYPE_NATIVE_INT',
+                'DPI_NATIVE_TYPE_INT64', 0, false, null
+            ]
+        )
     ),
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]).
-
-stmtDefineBadPos(#{session := Conn} = TestCtx) -> 
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt,
         [Conn, false, <<"select 1 from dual">>, <<>>]
     ),
-    #{var := Var, data := Data} =
-        dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                100, 0, false, false, null]
-        ),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?ASSERT_EX(
         "Unable to retrieve uint pos from arg1",
-        dpiCall(TestCtx, stmt_define, [Stmt, ?BAD_INT, Var])
-    ),
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtDefineBadVar(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?ASSERT_EX(
-        "Unable to retrieve resource var from arg2",
-        dpiCall(TestCtx, stmt_define, [Stmt, 1, ?BAD_REF])
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-% fails due to the pos being invalid
-stmtDefineFail(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
-    #{var := Var, data := Data} =
         dpiCall(
-            TestCtx, conn_newVar,
-            [Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
-                100, 0, false, false, null]
-        ),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?ASSERT_EX(
-        #{},
-        dpiCall(TestCtx, stmt_define, [Stmt, 12345, Var])
+            TestCtx, stmt_defineValue,
+            [
+                Stmt, ?BAD_INT, 'DPI_ORACLE_TYPE_NATIVE_INT',
+                'DPI_NATIVE_TYPE_INT64', 0, false, null
+            ]
+        )
     ),
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtDefineValue(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"select 1 from dual">>, <<>>]
+    ?ASSERT_EX(
+        "wrong or unsupported dpiOracleType type",
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [Stmt, 1, badAtom, 'DPI_NATIVE_TYPE_INT64', 0, false, null]
+        )
+    ),
+    ?ASSERT_EX(
+        "wrong or unsupported dpiNativeType type",
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', badAtom, 0, false, null]
+        )
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve uint size from arg4",
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
+                ?BAD_INT, false, null]
+        )
+    ),
+    ?ASSERT_EX(
+        "Unable to retrieve bool/atom sizeIsBytes from arg5",
+        dpiCall(
+            TestCtx, stmt_defineValue,
+            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0,
+                "badAtom", null]
+        )
     ),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assertEqual(ok, 
@@ -909,129 +925,12 @@ stmtDefineValue(#{session := Conn} = TestCtx) ->
     ),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-stmtDefineValueBadStmt(TestCtx) -> 
-    ?ASSERT_EX(
-        "Unable to retrieve resource statement from arg0",
-        dpiCall(
-            TestCtx, stmt_defineValue,
-            [?BAD_REF, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
-                0, false, null]
-        )
-    ).
-
-stmtDefineValueBadPos(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt, 
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?ASSERT_EX(
-        "Unable to retrieve uint pos from arg1",
-        dpiCall(
-            TestCtx, stmt_defineValue,
-            [Stmt, ?BAD_INT, 'DPI_ORACLE_TYPE_NATIVE_INT',
-                'DPI_NATIVE_TYPE_INT64', 0, false, null]
-        )
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-
-stmtDefineValueBadOraType(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?ASSERT_EX(
-        #{},
-        dpiCall(
-            TestCtx, stmt_defineValue,
-            [Stmt, 1, "badAtom", 'DPI_NATIVE_TYPE_INT64', 0, false, null]
-        )
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-
-stmtDefineValueBadNativeType(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?ASSERT_EX(
-        "wrong or unsupported dpiNativeType type",
-        dpiCall(
-            TestCtx, stmt_defineValue,
-            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', "badAtom", 0, false, null]
-        )
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-
-stmtDefineValueBadSize(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?ASSERT_EX(
-        "Unable to retrieve uint size from arg4",
-        dpiCall(
-            TestCtx, stmt_defineValue,
-            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64',
-                ?BAD_INT, false, null]
-        )
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-
-stmtDefineValueBadSizeInBytes(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?ASSERT_EX(
-        "Unable to retrieve bool/atom sizeIsBytes from arg5",
-        dpiCall(
-            TestCtx, stmt_defineValue,
-            [Stmt, 1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0,
-                "badAtom", null]
-        )
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-% fails due to invalid position
-stmtDefineValueFail(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-    ?ASSERT_EX(
-        "Unable to retrieve uint pos from arg1",
-        dpiCall(
-            TestCtx, stmt_defineValue,
-            [Stmt, -1, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 0,
-                false, null]
-        )
-    ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-stmtClose(#{session := Conn} = TestCtx) -> 
-    Stmt = dpiCall(
-        TestCtx, conn_prepareStmt,
-        [Conn, false, <<"select 1 from dual">>, <<>>]
-    ),
-    ?assertEqual(ok, dpiCall(TestCtx, stmt_close, [Stmt, <<>>])).
-
-stmtCloseBadStmt(TestCtx) -> 
+stmtClose(#{session := Conn} = TestCtx) ->
+    % fails due to wrong reference
     ?ASSERT_EX(
         "Unable to retrieve resource statement from arg0",
         dpiCall(TestCtx, stmt_close, [?BAD_REF, <<>>])
-    ).
-
-stmtCloseBadTag(#{session := Conn} = TestCtx) -> 
+    ),
     Stmt = dpiCall(
         TestCtx, conn_prepareStmt,
         [Conn, false, <<"select 1 from dual">>, <<>>]
@@ -1040,37 +939,17 @@ stmtCloseBadTag(#{session := Conn} = TestCtx) ->
         "Unable to retrieve string tag from arg1",
         dpiCall(TestCtx, stmt_close, [Stmt, badBinary])
     ),
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
-
-% fails due to wrong reference
-stmtCloseFail(#{session := Conn} = TestCtx) -> 
-    ?ASSERT_EX(
-        "Unable to retrieve resource statement from arg0",
-        dpiCall(TestCtx, stmt_close, [Conn, <<>>])
-    ).
+    ?assertEqual(ok, dpiCall(TestCtx, stmt_close, [Stmt, <<>>])).
 
 %-------------------------------------------------------------------------------
 % Variable APIs
 %-------------------------------------------------------------------------------
 
 varSetNumElementsInArray(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := Data} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
-            true, true, null
-        ]
-    ),
-    ?assertEqual(ok, dpiCall(TestCtx, var_setNumElementsInArray, [Var, 100])),
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]).
-
-varSetNumElementsInArrayBadVar(TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource var from arg0",
         dpiCall(TestCtx, var_setNumElementsInArray, [?BAD_REF, 100])
-    ).
-
-varSetNumElementsInArrayBadNumElements(#{session := Conn} = TestCtx) ->
+    ),
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
@@ -1081,43 +960,15 @@ varSetNumElementsInArrayBadNumElements(#{session := Conn} = TestCtx) ->
         "Unable to retrieve uint numElements from arg1",
         dpiCall(TestCtx, var_setNumElementsInArray, [Var, ?BAD_INT])
     ),
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]).
-
-% fails due to invalid array size
-varSetNumElementsInArrayFail(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := Data} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
-            true, true, null
-        ]
-    ),
-    ?ASSERT_EX(
-        "Unable to retrieve uint numElements from arg1",
-        dpiCall(TestCtx, var_setNumElementsInArray, [Var, -1])
-    ),
+    ?assertEqual(ok, dpiCall(TestCtx, var_setNumElementsInArray, [Var, 100])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]).
 
 varSetFromBytes(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := Data} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
-            true, true, null
-        ]
-    ),
-    ?assertEqual(ok, dpiCall(TestCtx, var_setFromBytes, [Var, 0, <<"abc">>])),
-    
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]).
-
-varSetFromBytesBadVar(TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource var from arg0",
         dpiCall(TestCtx, var_setFromBytes, [?BAD_REF, 0, <<"abc">>])
-    ).
-
-varSetFromBytesBadPos(#{session := Conn} = TestCtx) ->
+    ),
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
@@ -1128,42 +979,26 @@ varSetFromBytesBadPos(#{session := Conn} = TestCtx) ->
         "Unable to retrieve uint pos from arg1",
         dpiCall(TestCtx, var_setFromBytes, [Var, ?BAD_INT, <<"abc">>])
     ),
-    
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]).
-
-varSetFromBytesBadBinary(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := Data} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
-            true, true, null
-        ]
-    ),
     ?ASSERT_EX(
         "Unable to retrieve binary/string value from arg2",
         dpiCall(TestCtx, var_setFromBytes, [Var, 0, badBinary])
     ),
-    
-    [dpiCall(TestCtx, data_release, [X]) || X <- Data],
-    dpiCall(TestCtx, var_release, [Var]).
-
-% fails due to position being invalid
-varSetFromBytesFail(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := Data} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
-            true, true, null
-        ]
-    ),
     ?ASSERT_EX(
-        "Unable to retrieve uint pos from arg1",
-        dpiCall(TestCtx, var_setFromBytes, [Var, -1, <<"abc">>])
+        #{message :=
+            "DPI-1009: zero-based position 1000 is not valid with max array"
+            " size of 100"
+        },
+        dpiCall(TestCtx, var_setFromBytes, [Var, 1000, <<"abc">>])
     ),
-    
+    ?assertEqual(ok, dpiCall(TestCtx, var_setFromBytes, [Var, 0, <<"abc">>])),
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     dpiCall(TestCtx, var_release, [Var]).
 
 varRelease(#{session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource var from arg0",
+        dpiCall(TestCtx, var_release, [?BAD_REF])
+    ),
     #{var := Var, data := Data} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 100, 100,
@@ -1173,472 +1008,293 @@ varRelease(#{session := Conn} = TestCtx) ->
     [dpiCall(TestCtx, data_release, [X]) || X <- Data],
     ?assertEqual(ok, dpiCall(TestCtx, var_release, [Var])).
 
-varReleaseBadVar(TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource var from arg0",
-        dpiCall(TestCtx, var_release, [?BAD_REF])
-    ).
-
-% fails due to the reference being wrong
-varReleaseFail(#{context := Context} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource var from arg0",
-        dpiCall(TestCtx, var_release, [Context])
-    ).
-
 %-------------------------------------------------------------------------------
 % Data APIs
 %-------------------------------------------------------------------------------
 
-dataSetTimestamp(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertEqual(ok,
-        dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-    ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetTimestampBadData(TestCtx) ->
+dataSetTimestamp(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource data/ptr from arg0",
         dpiCall(
-            TestCtx, data_setTimestamp,
-            [?BAD_REF, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+            TestCtx, data_setTimestamp, [?BAD_REF, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         )
-    ).
-
-dataSetTimestampBadYear(TestCtx) ->
+    ),
     Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int year from arg1",
         dpiCall(
-            TestCtx, data_setTimestamp,
-            [Data, ?BAD_INT, 2, 3, 4, 5, 6, 7, 8, 9]
+            TestCtx, data_setTimestamp, [Data, ?BAD_INT, 2, 3, 4, 5, 6, 7, 8, 9]
         )
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetTimestampBadMonth(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int month from arg2",
         dpiCall(
-            TestCtx, data_setTimestamp,
-            [Data, 1, ?BAD_INT, 3, 4, 5, 6, 7, 8, 9]
+            TestCtx, data_setTimestamp, [Data, 1, ?BAD_INT, 3, 4, 5, 6, 7, 8, 9]
         )
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetTimestampBadDay(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int day from arg3",
         dpiCall(
-            TestCtx, data_setTimestamp,
-            [Data, 1, 2, ?BAD_INT, 4, 5, 6, 7, 8, 9]
+            TestCtx, data_setTimestamp, [Data, 1, 2, ?BAD_INT, 4, 5, 6, 7, 8, 9]
         )
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetTimestampBadHour(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int hour from arg4",
         dpiCall(
-            TestCtx, data_setTimestamp,
-            [Data, 1, 2, 3, ?BAD_INT, 5, 6, 7, 8, 9]
+            TestCtx, data_setTimestamp, [Data, 1, 2, 3, ?BAD_INT, 5, 6, 7, 8, 9]
         )
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetTimestampBadMinute(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int minute from arg5",
         dpiCall(
-            TestCtx, data_setTimestamp,
-            [Data, 1, 2, 3, 4, ?BAD_INT, 6, 7, 8, 9]
+            TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, ?BAD_INT, 6, 7, 8, 9]
         )
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetTimestampBadSecond(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int second from arg6",
         dpiCall(
             TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, ?BAD_INT, 7, 8, 9]
         )
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetTimestampBadFSecond(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int fsecond from arg7",
         dpiCall(
-            TestCtx, data_setTimestamp,
-            [Data, 1, 2, 3, 4, 5, 6, ?BAD_INT, 8, 9]
+            TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, ?BAD_INT, 8, 9]
         )
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetTimestampBadTZHourOffset(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int tzHourOffset from arg8",
         dpiCall(
-            TestCtx, data_setTimestamp,
-            [Data, 1, 2, 3, 4, 5, 6, 7, ?BAD_INT, 9]
+            TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, ?BAD_INT, 9]
         )
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetTimestampBadTZMinuteOffset(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int tzMinuteOffset from arg9",
         dpiCall(
-            TestCtx, data_setTimestamp,
-            [Data, 1, 2, 3, 4, 5, 6, 7, 8, ?BAD_INT]
+            TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, 8, ?BAD_INT]
         )
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-% fails due to the Data ref passed being completely wrong
-% (it doesn't seem to mind the nonsense parameters. Year -1234567? Sure.
-% Timezone of -22398 hours and 3239 minutes? No problem)
-dataSetTimestampFail(#{session := Conn} = TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?ASSERT_EX(
-        "Unable to retrieve resource data/ptr from arg0",
-        dpiCall(
-            TestCtx, data_setTimestamp,
-            [Conn, -1234567, 2, 3, 4, 5, 6, 7, -22398, 3239]
-        )
+    ?assertEqual(
+        ok,
+        dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetTimestampViaPointer(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
+    dpiCall(TestCtx, data_release, [Data]),
+    #{var := Var, data := [Data1]} = dpiCall(
+        TestCtx, conn_newVar,
+        [
             Conn, 'DPI_ORACLE_TYPE_TIMESTAMP_TZ', 'DPI_NATIVE_TYPE_TIMESTAMP',
             1, 1, true, true, null
         ]
     ),
     ?assertEqual(ok,
-        dpiCall(TestCtx, data_setTimestamp, [Data, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        dpiCall(TestCtx, data_setTimestamp, [Data1, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     ),
-    dpiCall(TestCtx, data_release, [Data]),
+    dpiCall(TestCtx, data_release, [Data1]),
     dpiCall(TestCtx, var_release, [Var]).
 
-dataSetIntervalDS(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertEqual(ok,
-        dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, 4, 5])
-    ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIntervalDSBadData(TestCtx) ->
+dataSetIntervalDS(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource data/ptr from arg0",
         dpiCall(TestCtx, data_setIntervalDS, [?BAD_REF, 1, 2, 3, 4, 5])
-    ).
-
-dataSetIntervalDSBadDays(TestCtx) ->
+    ),
     Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int days from arg1",
         dpiCall(TestCtx, data_setIntervalDS, [Data, ?BAD_INT, 2, 3, 4, 5])
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIntervalDSBadHours(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int hours from arg2",
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, ?BAD_INT, 3, 4, 5])
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIntervalDSBadMinutes(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int minutes from arg3",
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, ?BAD_INT, 4, 5])
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIntervalDSBadSeconds(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int seconds from arg4",
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, ?BAD_INT, 5])
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIntervalDSBadFSeconds(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int fseconds from arg5",
         dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, 4, ?BAD_INT])
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-% fails due to the Data ref passed being completely wrong
-dataSetIntervalDSFail(#{session := Conn} = TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?ASSERT_EX(
-        "Unable to retrieve resource data/ptr from arg0",
-        dpiCall(TestCtx, data_setIntervalDS, [Conn, 1, 2, 3, 4, 5])
+    ?assertEqual(
+        ok,
+        dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, 4, 5])
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIntervalDSViaPointer(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
+    dpiCall(TestCtx, data_release, [Data]),
+    #{var := Var, data := [Data1]} = dpiCall(
+        TestCtx, conn_newVar,
+        [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_DS', 'DPI_NATIVE_TYPE_INTERVAL_DS',
             1, 1, true, true, null
         ]
     ),
     ?assertEqual(ok,
-        dpiCall(TestCtx, data_setIntervalDS, [Data, 1, 2, 3, 4, 5])
+        dpiCall(TestCtx, data_setIntervalDS, [Data1, 1, 2, 3, 4, 5])
     ),
-    dpiCall(TestCtx, data_release, [Data]),
+    dpiCall(TestCtx, data_release, [Data1]),
     dpiCall(TestCtx, var_release, [Var]).
 
-dataSetIntervalYM(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertEqual(ok,
-        dpiCall(TestCtx, data_setIntervalYM, [Data, 1, 2])
-    ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIntervalYMBadData(TestCtx) ->
+dataSetIntervalYM(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource data/ptr from arg0",
         dpiCall(TestCtx, data_setIntervalYM, [?BAD_REF, 1, 2])
-    ).
-
-dataSetIntervalYMBadYears(TestCtx) ->
+    ),
     Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int years from arg1",
         dpiCall(TestCtx, data_setIntervalYM, [Data, ?BAD_INT, 2])
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIntervalYMBadMonths(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int months from arg2",
         dpiCall(TestCtx, data_setIntervalYM, [Data, 1, ?BAD_INT])
-    ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-% fails due to the Data ref passed being completely wrong
-dataSetIntervalYMFail(#{session := Conn} = TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?ASSERT_EX(
-        "Unable to retrieve resource data/ptr from arg0",
-        dpiCall(TestCtx, data_setIntervalYM, [Conn, 1, 2])
-    ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIntervalYMViaPointer(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
-            1, 1, true, true, null
-        ]
     ),
     ?assertEqual(ok,
         dpiCall(TestCtx, data_setIntervalYM, [Data, 1, 2])
     ),
     dpiCall(TestCtx, data_release, [Data]),
+    #{var := Var, data := [Data1]} = dpiCall(
+        TestCtx, conn_newVar,
+        [
+            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
+            1, 1, true, true, null
+        ]
+    ),
+    ?assertEqual(ok, dpiCall(TestCtx, data_setIntervalYM, [Data1, 1, 2])),
+    dpiCall(TestCtx, data_release, [Data1]),
     dpiCall(TestCtx, var_release, [Var]).
 
-dataSetInt64(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertEqual(ok,
-        dpiCall(TestCtx, data_setInt64, [Data, 1])
-    ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetInt64BadData(TestCtx) ->
+dataSetInt64(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource data/ptr from arg0",
         dpiCall(TestCtx, data_setInt64, [?BAD_REF, 1])
-    ).
-
-dataSetInt64BadAmount(TestCtx) ->
+    ),
     Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve int amount from arg1",
         dpiCall(TestCtx, data_setInt64, [Data, ?BAD_INT])
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-% fails due to the Data ref passed being completely wrong
-dataSetInt64Fail(#{session := Conn} = TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?ASSERT_EX(
-        "Unable to retrieve resource data/ptr from arg0",
-        dpiCall(TestCtx, data_setInt64, [Conn, 1])
-    ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetInt64ViaPointer(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
+    ?assertEqual(ok, dpiCall(TestCtx, data_setInt64, [Data, 1])),
+    dpiCall(TestCtx, data_release, [Data]),
+    #{var := Var, data := [Data1]} = dpiCall(
         TestCtx, conn_newVar, [
             Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
             1, 1, true, true, null
         ]
     ),
-    ?assertEqual(ok,
-        dpiCall(TestCtx, data_setInt64, [Data, 1])
-    ),
-    dpiCall(TestCtx, data_release, [Data]),
+    ?assertEqual(ok, dpiCall(TestCtx, data_setInt64, [Data1, 1])),
+    dpiCall(TestCtx, data_release, [Data1]),
     dpiCall(TestCtx, var_release, [Var]).
 
 dataSetBytes(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertEqual(ok,
-        dpiCall(TestCtx, data_setBytes, [Data, <<"my string">>])
-    ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetBytesBadData(TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource data/ptr from arg0",
         dpiCall(TestCtx, data_setBytes, [?BAD_REF, <<"my string">>])
-    ).
-
-dataSetBytesBadBinary(TestCtx) ->
+    ),
     Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve binary data from arg1",
         dpiCall(TestCtx, data_setBytes, [Data, badBinary])
     ),
+    ?assertEqual(ok, dpiCall(TestCtx, data_setBytes, [Data, <<"my string">>])),
     dpiCall(TestCtx, data_release, [Data]).
 
-% fails due to the Data ref passed being completely wrong
-dataSetBytesFail(#{session := Conn} = TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?ASSERT_EX(
-        "Unable to retrieve resource data/ptr from arg0",
-        dpiCall(TestCtx, data_setBytes, [Conn, <<"my string">>])
-    ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIsNullTrue(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertEqual(ok,
-        dpiCall(TestCtx, data_setIsNull, [Data, true])
-    ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIsNullFalse(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertEqual(ok,
-        dpiCall(TestCtx, data_setIsNull, [Data, false])
-    ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIsNullBadData(TestCtx) ->
+dataSetIsNull(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource data/ptr from arg0",
         dpiCall(TestCtx, data_setIsNull, [?BAD_REF, 1])
-    ).
-
-dataSetIsNullBadIsNull(TestCtx) ->
+    ),
     Data = dpiCall(TestCtx, data_ctor, []),
     ?ASSERT_EX(
         "Unable to retrieve bool/atom isNull from arg1",
         dpiCall(TestCtx, data_setIsNull, [Data, "not an atom"])
     ),
-    dpiCall(TestCtx, data_release, [Data]).
+    ?assertEqual(ok, dpiCall(TestCtx, data_setIsNull, [Data, true])),
+    ?assertEqual(ok, dpiCall(TestCtx, data_setIsNull, [Data, false])),
+    dpiCall(TestCtx, data_release, [Data]),
+    #{var := Var, data := [Data1]} = dpiCall(
+        TestCtx, conn_newVar,
+        [
+            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
+            1, 1, true, true, null
+        ]
+    ),
+    ?assertEqual(ok, dpiCall(TestCtx, data_setIsNull, [Data1, true])),
+    dpiCall(TestCtx, data_release, [Data1]),
+    dpiCall(TestCtx, var_release, [Var]).
 
-% fails due to the Data ref passed being completely wrong
-dataSetIsNullFail(#{session := Conn} = TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
+dataGet(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
-        "Unable to retrieve resource data/ptr from arg0",
-        dpiCall(TestCtx, data_setIsNull, [Conn, 1])
+        "Unable to retrieve resource data from arg0",
+        dpiCall(TestCtx, data_get, [?BAD_REF])
     ),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataSetIsNullViaPointer(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
-            1, 1, true, true, null
-        ]
-    ),
-    ?assertEqual(ok,
-        dpiCall(TestCtx, data_setIsNull, [Data, true])
-    ),
-    dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
-
-dataGetNull(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
-            1, 1, true, true, null
-        ]
-    ),
-    dpiCall(TestCtx, data_setIsNull, [Data, true]),
-    ?assertEqual(null, dpiCall(TestCtx, data_get, [Data])),
-    dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
-
-dataGetTInt64(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 1, 1,
-            true, true, null
-        ]
-    ),
-    dpiCall(TestCtx, data_setIsNull, [Data, false]),
-    ?assert(is_integer(dpiCall(TestCtx, data_get, [Data]))),
-    dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
-
-dataGetUint64(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_NATIVE_UINT', 'DPI_NATIVE_TYPE_UINT64', 1, 1,
-            true, true, null
-        ]
-    ),
-    dpiCall(TestCtx, data_setIsNull, [Data, false]),
-    ?assert(is_integer(dpiCall(TestCtx, data_get, [Data]))),
-    dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
-
-dataGetFloat(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_NATIVE_FLOAT', 'DPI_NATIVE_TYPE_FLOAT', 1, 1,
-            true, true, null
-        ]
-    ),
-    dpiCall(TestCtx, data_setIsNull, [Data, false]),
-    ?assert(is_float(dpiCall(TestCtx, data_get, [Data]))),
-    dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
-
-dataGetDouble(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE', 1,
-            1, true, true, null
-        ]
-    ),
-    dpiCall(TestCtx, data_setIsNull, [Data, false]),
-    ?assert(is_float(dpiCall(TestCtx, data_get, [Data]))),
-    dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
+    [begin
+        #{var := Var, data := [Data]} = dpiCall(
+            TestCtx, conn_newVar,
+            [Conn, OraType, NativeType, 1, 0, false, false, null]
+        ),
+        if Test == null -> dpiCall(TestCtx, data_setIsNull, [Data, true]);
+        true -> dpiCall(TestCtx, data_setIsNull, [Data, false])
+        end,
+        case Test of
+            null -> ?assertEqual(null, dpiCall(TestCtx, data_get, [Data]));
+            int ->
+                ?assert(is_integer(dpiCall(TestCtx, data_getInt64, [Data]))),
+                ?assert(is_integer(dpiCall(TestCtx, data_get, [Data])));
+            float -> ?assert(is_float(dpiCall(TestCtx, data_get, [Data])));
+            ts ->
+                #{
+                    year := Year, month := Month, day := Day, hour := Hour,
+                    minute := Minute, second := Second, fsecond := Fsecond,
+                    tzHourOffset := TzHourOffset,
+                    tzMinuteOffset := TzMinuteOffset
+                } = dpiCall(TestCtx, data_get, [Data]),
+                ?assert(is_integer(Year)),
+                ?assert(is_integer(Month)),
+                ?assert(is_integer(Day)),
+                ?assert(is_integer(Hour)),
+                ?assert(is_integer(Minute)),
+                ?assert(is_integer(Second)),
+                ?assert(is_integer(Fsecond)),
+                ?assert(is_integer(TzHourOffset)),
+                ?assert(is_integer(TzMinuteOffset));
+            intvlds ->
+                #{
+                    days := Days, hours := Hours, minutes := Minutes, 
+                    seconds := Seconds, fseconds := Fseconds
+                } = dpiCall(TestCtx, data_get, [Data]),
+                ?assert(is_integer(Days)),
+                ?assert(is_integer(Hours)),
+                ?assert(is_integer(Minutes)),
+                ?assert(is_integer(Seconds)),
+                ?assert(is_integer(Fseconds));
+            intvlym ->
+                #{
+                    years := Years,
+                    months := Months
+                } = dpiCall(TestCtx, data_get, [Data]),
+                ?assert(is_integer(Years)),
+                ?assert(is_integer(Months));
+            unsupported ->
+                ?ASSERT_EX(
+                    "Unsupported nativeTypeNum",
+                    dpiCall(TestCtx, data_get, [Data])
+                )
+        end,
+        dpiCall(TestCtx, data_release, [Data]),
+        dpiCall(TestCtx, var_release, [Var])
+    end || {Test, OraType, NativeType} <- [
+        {null, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM'},
+        {int, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64'},
+        {int, 'DPI_ORACLE_TYPE_NATIVE_UINT', 'DPI_NATIVE_TYPE_UINT64'},
+        {float, 'DPI_ORACLE_TYPE_NATIVE_FLOAT', 'DPI_NATIVE_TYPE_FLOAT'},
+        {float, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE'},
+        {ts, 'DPI_ORACLE_TYPE_TIMESTAMP_TZ', 'DPI_NATIVE_TYPE_TIMESTAMP'},
+        {intvlds, 'DPI_ORACLE_TYPE_INTERVAL_DS', 'DPI_NATIVE_TYPE_INTERVAL_DS'},
+        {intvlym, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM'},
+        {unsupported, 'DPI_ORACLE_TYPE_CLOB', 'DPI_NATIVE_TYPE_LOB'}
+    ]].
 
 dataGetBinary(#{session := Conn} = TestCtx) ->
     #{var := Var, data := [Data]} = dpiCall(
@@ -1667,218 +1323,74 @@ dataGetRowid(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-dataGetTimestamp(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_TIMESTAMP_TZ', 'DPI_NATIVE_TYPE_TIMESTAMP',
-            1, 100, true, true, null
-        ]
-    ),
-    dpiCall(TestCtx, data_setIsNull, [Data, false]),
-    #{year := Year, month := Month, day := Day, hour := Hour, minute := Minute,
-        second := Second, fsecond := Fsecond, tzHourOffset := TzHourOffset,
-        tzMinuteOffset := TzMinuteOffset
-    } = dpiCall(TestCtx, data_get, [Data]),
-    ?assert(is_integer(Year)),
-    ?assert(is_integer(Month)),
-    ?assert(is_integer(Day)),
-    ?assert(is_integer(Hour)),
-    ?assert(is_integer(Minute)),
-    ?assert(is_integer(Second)),
-    ?assert(is_integer(Fsecond)),
-    ?assert(is_integer(TzHourOffset)),
-    ?assert(is_integer(TzMinuteOffset)),
-    dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
-
-dataGetIntervalDS(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_DS', 'DPI_NATIVE_TYPE_INTERVAL_DS',
-            1, 100, true, true, null
-        ]
-    ),
-    dpiCall(TestCtx, data_setIsNull, [Data, false]),
-    #{days := Days, hours := Hours, minutes := Minutes, 
-        seconds := Seconds, fseconds := Fseconds} =
-        dpiCall(TestCtx, data_get, [Data]),
-    ?assert(is_integer(Days)),
-    ?assert(is_integer(Hours)),
-    ?assert(is_integer(Minutes)),
-    ?assert(is_integer(Seconds)),
-    ?assert(is_integer(Fseconds)),
-    dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
-
-
-dataGetIntervalYM(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
-            1, 100, true, true, null
-        ]
-    ),
-    dpiCall(TestCtx, data_setIsNull, [Data, false]),
-    #{years := Years, months := Months} =
-        dpiCall(TestCtx, data_get, [Data]),
-    ?assert(is_integer(Years)),
-    ?assert(is_integer(Months)),
-    dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
-
 dataGetStmt(#{session := Conn} = TestCtx) ->
-    CreateStmt = dpiCall(TestCtx, conn_prepareStmt, [
-        Conn, false,
-        <<"create or replace procedure ORANIF_TEST_1
-            (p_cur out sys_refcursor)
-                is
-                begin
-                    open p_cur for select 1 from dual;
-            end ORANIF_TEST_1;">>,
-        <<>>
-    ]),
-    dpiCall(TestCtx, stmt_execute, [CreateStmt, []]),
-    dpiCall(TestCtx, stmt_close, [CreateStmt, <<>>]),
-
-    #{var := VarStmt, data := [DataStmt]} = dpiCall(TestCtx, conn_newVar, [
-        Conn, 'DPI_ORACLE_TYPE_STMT', 'DPI_NATIVE_TYPE_STMT', 1, 0,
-        false, false, null
-    ]),
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [
-        Conn, false, <<"begin ORANIF_TEST_1(:cursor); end;">>, <<>>
-    ]),
+    SQL = <<"
+        DECLARE
+            p_cursor SYS_REFCURSOR;
+        BEGIN
+            IF :choice > 0 THEN
+                OPEN p_cursor FOR SELECT 1 FROM dual;
+                :cursor := p_cursor;
+            ELSE
+                OPEN p_cursor FOR SELECT 2 FROM dual;
+                :cursor := p_cursor;
+            END IF;
+        END;
+    ">>,
+    #{var := VarChoice, data := [DataChoice]} = dpiCall(
+        TestCtx, conn_newVar,
+        [
+            Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 1, 0,
+            false, false, null
+        ]
+    ),
+    #{var := VarStmt, data := [DataStmt]} = dpiCall(
+        TestCtx, conn_newVar,
+        [
+            Conn, 'DPI_ORACLE_TYPE_STMT', 'DPI_NATIVE_TYPE_STMT', 1, 0,
+            false, false, null
+        ]
+    ),
+    Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, SQL, <<>>]),
+    ok = dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"choice">>, VarChoice]),
     ok = dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"cursor">>, VarStmt]),
 
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     % first-time get
+    ok = dpiCall(TestCtx, data_setInt64, [DataChoice, 0]),
+    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assert(is_reference(dpiCall(TestCtx, data_get, [DataStmt]))),
+
     % cached re-get
+    ok = dpiCall(TestCtx, data_setInt64, [DataChoice, 1]),
+    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assert(is_reference(dpiCall(TestCtx, data_get, [DataStmt]))),
+
+    dpiCall(TestCtx, data_release, [DataChoice]),
+    dpiCall(TestCtx, var_release, [VarChoice]),
     dpiCall(TestCtx, data_release, [DataStmt]),
     dpiCall(TestCtx, var_release, [VarStmt]).
 
-dataGetStmtChange(#{session := Conn} = TestCtx) ->
-    CreateStmt = dpiCall(TestCtx, conn_prepareStmt, [
-        Conn, false,
-        <<"create or replace procedure ORANIF_TEST_1
-            (p_cur out sys_refcursor)
-                is
-                begin
-                    open p_cur for select 1 from dual;
-            end ORANIF_TEST_1;">>,
-        <<>>
-    ]),
-    dpiCall(TestCtx, stmt_execute, [CreateStmt, []]),
-    dpiCall(TestCtx, stmt_close, [CreateStmt, <<>>]),
-
-    CreateStmt2 = dpiCall(TestCtx, conn_prepareStmt, [
-        Conn, false,
-        <<"create or replace procedure ORANIF_TEST_2
-            (p_cur out sys_refcursor)
-                is
-                begin
-                    open p_cur for select 2 from dual;
-            end ORANIF_TEST_2;">>,
-        <<>>
-    ]),
-    dpiCall(TestCtx, stmt_execute, [CreateStmt2, []]),
-    dpiCall(TestCtx, stmt_close, [CreateStmt2, <<>>]),
-
-    #{var := VarStmt, data := [DataStmt]} = dpiCall(TestCtx, conn_newVar, [
-        Conn, 'DPI_ORACLE_TYPE_STMT', 'DPI_NATIVE_TYPE_STMT', 1, 0,
-        false, false, null
-    ]),
-    Stmt = dpiCall(TestCtx, conn_prepareStmt, [
-        Conn, false, <<"begin ORANIF_TEST_1(:cursor); end;">>, <<>>
-    ]),
-    ok = dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"cursor">>, VarStmt]),
-    dpiCall(TestCtx, stmt_execute, [Stmt, []]),
-
-    % first-time get
-    ?assert(is_reference(dpiCall(TestCtx, data_get, [DataStmt]))),
-
-    Stmt2 = dpiCall(TestCtx, conn_prepareStmt, [
-        Conn, false, <<"begin ORANIF_TEST_2(:cursor); end;">>, <<>>
-    ]),
-    ok = dpiCall(TestCtx, stmt_bindByName, [Stmt2, <<"cursor">>, VarStmt]),
-    dpiCall(TestCtx, stmt_execute, [Stmt2, []]),
-
-    % "ref cursor changed"
-    ?assert(is_reference(dpiCall(TestCtx, data_get, [DataStmt]))),
-    dpiCall(TestCtx, data_release, [DataStmt]),
-    dpiCall(TestCtx, var_release, [VarStmt]),
-
-    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-    dpiCall(TestCtx, stmt_close, [Stmt2, <<>>]).
-
-dataGetBadData(TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource data from arg0",
-        dpiCall(TestCtx, data_get, [?BAD_REF])
-    ).
-
-% fails due to completely wrong reference
-dataGetFail(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource data from arg0",
-        dpiCall(TestCtx, data_get, [Conn])
-    ).
-
-dataGetUnsupportedType(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, 
-        [Conn, 'DPI_ORACLE_TYPE_CLOB', 'DPI_NATIVE_TYPE_LOB',
-            1, 0, false, false, null]
-    ),
-    dpiCall(TestCtx, data_setIsNull, [Data, false]),
-    ?ASSERT_EX(
-        "Unsupported nativeTypeNum",
-        dpiCall(TestCtx, data_get, [Data])
-    ),
-    dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
-
-dataGetInt64(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    dpiCall(TestCtx, data_setIsNull, [Data, false]),
-    ?assert(is_integer(dpiCall(TestCtx, data_getInt64, [Data]))),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataGetInt64BadData(TestCtx) ->
+dataGetInt64(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource data/ptr from arg0",
         dpiCall(TestCtx, data_getInt64, [?BAD_REF])
-    ).
-
-% fails due to completely wrong reference
-dataGetInt64Fail(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource data/ptr from arg0",
-        dpiCall(TestCtx, data_getInt64, [Conn])
-    ).
-
-dataGetInt64Null(TestCtx) ->
+    ),
     Data = dpiCall(TestCtx, data_ctor, []),
     dpiCall(TestCtx, data_setIsNull, [Data, true]),
     ?assertEqual(null, dpiCall(TestCtx, data_getInt64, [Data])),
-    dpiCall(TestCtx, data_release, [Data]).
-
-dataGetInt64ViaPointer(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 1, 1,
-            true, true, null
-        ]
-    ),
     dpiCall(TestCtx, data_setIsNull, [Data, false]),
     ?assert(is_integer(dpiCall(TestCtx, data_getInt64, [Data]))),
-    dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
+    dpiCall(TestCtx, data_release, [Data]).
 
 % no non-pointer test for this one
 dataGetBytes(#{session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource data/ptr from arg0",
+        dpiCall(TestCtx, data_getBytes, [?BAD_REF])
+    ),
     #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
+        TestCtx, conn_newVar,
+        [
             Conn, 'DPI_ORACLE_TYPE_VARCHAR', 'DPI_NATIVE_TYPE_BYTES', 1, 1,
             true, true, null
         ]
@@ -1886,54 +1398,31 @@ dataGetBytes(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, data_setIsNull, [Data, false]),
     ?assert(is_binary(dpiCall(TestCtx, data_getBytes, [Data]))),
     dpiCall(TestCtx, data_release, [Data]),
-    dpiCall(TestCtx, var_release, [Var]).
+    dpiCall(TestCtx, var_release, [Var]),
+    Data1 = dpiCall(TestCtx, data_ctor, []),
+    dpiCall(TestCtx, data_setIsNull, [Data1, true]),
+    ?assertEqual(null, dpiCall(TestCtx, data_getBytes, [Data1])),
+    dpiCall(TestCtx, data_release, [Data1]).
 
-dataGetBytesBadData(TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource data/ptr from arg0",
-        dpiCall(TestCtx, data_getBytes, [?BAD_REF])
-    ).
-
-dataGetBytesNull(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    dpiCall(TestCtx, data_setIsNull, [Data, true]),
-    ?assertEqual(null, dpiCall(TestCtx, data_getBytes, [Data])),
-    dpiCall(TestCtx, data_release, [Data]).
-
-% fails due to completely wrong reference
-dataGetBytesFail(#{session := Conn} = TestCtx) ->
-    ?ASSERT_EX(
-        "Unable to retrieve resource data/ptr from arg0",
-        dpiCall(TestCtx, data_getBytes, [Conn])
-    ).
-
-dataRelease(TestCtx) ->
-    Data = dpiCall(TestCtx, data_ctor, []),
-    ?assertEqual(ok, dpiCall(TestCtx, data_release, [Data])).
-
-dataReleaseBadData(TestCtx) ->
+dataRelease(#{session := Conn} = TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource data from arg0",
         dpiCall(TestCtx, data_release, [?BAD_REF])
-    ).
-
-% fails due to completely wrong reference
-dataReleaseFail(#{session := Conn} = TestCtx) ->
+    ),
     ?ASSERT_EX(
         "Unable to retrieve resource data from arg0",
         dpiCall(TestCtx, data_release, [Conn])
-    ).
-
-dataReleaseViaPointer(#{session := Conn} = TestCtx) ->
-    #{var := Var, data := [Data]} = dpiCall(
-        TestCtx, conn_newVar, [
+    ),
+    Data = dpiCall(TestCtx, data_ctor, []),
+    ?assertEqual(ok, dpiCall(TestCtx, data_release, [Data])),
+    #{var := Var, data := [Data1]} = dpiCall(
+        TestCtx, conn_newVar,
+        [
             Conn, 'DPI_ORACLE_TYPE_NATIVE_INT', 'DPI_NATIVE_TYPE_INT64', 1, 1,
             true, true, null
         ]
     ),
-    ?assertEqual(ok,
-        dpiCall(TestCtx, data_release, [Data])
-    ),
+    ?assertEqual(ok, dpiCall(TestCtx, data_release, [Data1])),
     dpiCall(TestCtx, var_release, [Var]).
 
 %-------------------------------------------------------------------------------
@@ -1981,135 +1470,6 @@ cleanup(_) -> ok.
 % Internal functions
 %-------------------------------------------------------------------------------
 
--define(NO_CONTEXT_TESTS, [
-    ?F(contextCreate),
-    ?F(contextDestroy),
-    ?F(contextGetClientVersion),
-    ?F(connCreate)
-]).
-
--define(AFTER_CONNECTION_TESTS, [
-    ?F(connPrepareStmt),
-    ?F(connNewVar),
-    ?F(connCommit),
-    ?F(connRollback),
-    ?F(connPing),
-    ?F(connClose),
-    ?F(connGetServerVersion),
-    ?F(connSetClientIdentifier),
-    ?F(stmtExecute),
-    ?F(stmtExecuteMany),
-    ?F(stmtFetch),
-    ?F(stmtGetQueryValue),
-    ?F(stmtGetQueryInfo),
-    ?F(stmtGetInfo),
-    ?F(stmtGetNumQueryColumns),
-    ?F(stmtBindValueByPos),
-    ?F(stmtBindValueByName),
-    ?F(stmtBindByPos),
-    ?F(stmtBindByName),
-    ?F(stmtDefine),
-    ?F(stmtDefineBadStmt),
-    ?F(stmtDefineBadPos),
-    ?F(stmtDefineBadVar),
-    ?F(stmtDefineFail),
-    ?F(stmtDefineValue),
-    ?F(stmtDefineValueBadStmt),
-    ?F(stmtDefineValueBadPos),
-    ?F(stmtDefineValueBadOraType),
-    ?F(stmtDefineValueBadNativeType),
-    ?F(stmtDefineValueBadSize),
-    ?F(stmtDefineValueBadSizeInBytes),
-    ?F(stmtDefineValueFail),
-    ?F(stmtClose),
-    ?F(stmtCloseBadStmt),
-    ?F(stmtCloseBadTag),
-    ?F(stmtCloseFail),
-    ?F(varSetNumElementsInArray),
-    ?F(varSetNumElementsInArrayBadVar),
-    ?F(varSetNumElementsInArrayBadNumElements),
-    ?F(varSetNumElementsInArrayFail),
-    ?F(varSetFromBytes),
-    ?F(varSetFromBytesBadVar),
-    ?F(varSetFromBytesBadPos),
-    ?F(varSetFromBytesBadBinary),
-    ?F(varSetFromBytesFail),
-    ?F(varRelease),
-    ?F(varReleaseBadVar),
-    ?F(varReleaseFail),
-    ?F(dataSetTimestamp),
-    ?F(dataSetTimestampBadData),
-    ?F(dataSetTimestampBadYear),
-    ?F(dataSetTimestampBadMonth),
-    ?F(dataSetTimestampBadDay),
-    ?F(dataSetTimestampBadHour),
-    ?F(dataSetTimestampBadMinute),
-    ?F(dataSetTimestampBadSecond),
-    ?F(dataSetTimestampBadFSecond),
-    ?F(dataSetTimestampBadTZHourOffset),
-    ?F(dataSetTimestampBadTZMinuteOffset),
-    ?F(dataSetTimestampFail),
-    ?F(dataSetTimestampViaPointer),
-    ?F(dataSetIntervalDS),
-    ?F(dataSetIntervalDSBadData),
-    ?F(dataSetIntervalDSBadDays),
-    ?F(dataSetIntervalDSBadHours),
-    ?F(dataSetIntervalDSBadMinutes),
-    ?F(dataSetIntervalDSBadSeconds),
-    ?F(dataSetIntervalDSBadFSeconds),
-    ?F(dataSetIntervalDSFail),
-    ?F(dataSetIntervalDSViaPointer),
-    ?F(dataSetIntervalYM),
-    ?F(dataSetIntervalYMBadData),
-    ?F(dataSetIntervalYMBadYears),
-    ?F(dataSetIntervalYMBadMonths),
-    ?F(dataSetIntervalYMFail),
-    ?F(dataSetIntervalYMViaPointer),
-    ?F(dataSetInt64),
-    ?F(dataSetInt64BadData),
-    ?F(dataSetInt64BadAmount),
-    ?F(dataSetInt64Fail),
-    ?F(dataSetInt64ViaPointer),
-    ?F(dataSetBytes),
-    ?F(dataSetBytesBadData),
-    ?F(dataSetBytesBadBinary),
-    ?F(dataSetBytesFail),
-    ?F(dataSetIsNullTrue),
-    ?F(dataSetIsNullFalse),
-    ?F(dataSetIsNullBadData),
-    ?F(dataSetIsNullBadIsNull),
-    ?F(dataSetIsNullFail),
-    ?F(dataSetIsNullViaPointer),
-    ?F(dataGetNull),
-    ?F(dataGetTInt64),
-    ?F(dataGetUint64),
-    ?F(dataGetFloat),
-    ?F(dataGetDouble),
-    ?F(dataGetBinary),
-    ?F(dataGetRowid),
-    ?F(dataGetTimestamp),
-    ?F(dataGetIntervalDS),
-    ?F(dataGetIntervalYM),
-    ?F(dataGetStmt),
-    ?F(dataGetStmtChange),
-    ?F(dataGetBadData),
-    ?F(dataGetFail),
-    ?F(dataGetUnsupportedType),
-    ?F(dataGetInt64),
-    ?F(dataGetInt64BadData),
-    ?F(dataGetInt64Fail),
-    ?F(dataGetInt64Null),
-    ?F(dataGetInt64ViaPointer),
-    ?F(dataGetBytes),
-    ?F(dataGetBytesBadData),
-    ?F(dataGetBytesFail),
-    ?F(dataGetBytesNull),
-    ?F(dataRelease),
-    ?F(dataReleaseBadData),
-    ?F(dataReleaseFail),
-    ?F(dataReleaseViaPointer)
-]).
-
 dpiCall(#{safe := true, node := Node}, F, A) ->
     case dpi:safe(Node, dpi, F, A) of
         {error, _, _, _} = Error -> error(Error);
@@ -2143,6 +1503,54 @@ getConfig() ->
 %-------------------------------------------------------------------------------
 % Unit Tests
 %-------------------------------------------------------------------------------
+
+-define(NO_CONTEXT_TESTS, [
+    ?F(contextCreate),
+    ?F(contextDestroy),
+    ?F(contextGetClientVersion),
+    ?F(connCreate)
+]).
+
+-define(AFTER_CONNECTION_TESTS, [
+    ?F(connPrepareStmt),
+    ?F(connNewVar),
+    ?F(connCommit),
+    ?F(connRollback),
+    ?F(connPing),
+    ?F(connClose),
+    ?F(connGetServerVersion),
+    ?F(connSetClientIdentifier),
+    ?F(stmtExecute),
+    ?F(stmtExecuteMany),
+    ?F(stmtFetch),
+    ?F(stmtGetQueryValue),
+    ?F(stmtGetQueryInfo),
+    ?F(stmtGetInfo),
+    ?F(stmtGetNumQueryColumns),
+    ?F(stmtBindValueByPos),
+    ?F(stmtBindValueByName),
+    ?F(stmtBindByPos),
+    ?F(stmtBindByName),
+    ?F(stmtDefine),
+    ?F(stmtDefineValue),
+    ?F(stmtClose),
+    ?F(varSetNumElementsInArray),
+    ?F(varSetFromBytes),
+    ?F(varRelease),
+    ?F(dataSetTimestamp),
+    ?F(dataSetIntervalDS),
+    ?F(dataSetIntervalYM),
+    ?F(dataSetInt64),
+    ?F(dataSetBytes),
+    ?F(dataSetIsNull),
+    ?F(dataGet),
+    ?F(dataGetBinary),
+    ?F(dataGetRowid),
+    ?F(dataGetStmt),
+    ?F(dataGetInt64),
+    ?F(dataGetBytes),
+    ?F(dataRelease)
+]).
 
 unsafe_no_context_test_() ->
     {
