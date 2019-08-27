@@ -20,8 +20,8 @@ DPI_NIF_FUN(context_create)
     if (!enif_get_uint(env, argv[1], &minor))
         BADARG_EXCEPTION(1, "uint minor");
 
-    dpiContext_res *contextRes =
-        enif_alloc_resource(dpiContext_type, sizeof(dpiContext_res));
+    dpiContext_res *contextRes;
+    ALLOC_RESOURCE(contextRes, dpiContext);
 
     // RAISE_EXCEPTION_ON_DPI_ERROR macro can't be used since we need to return
     // the error details too
@@ -29,13 +29,15 @@ DPI_NIF_FUN(context_create)
     if (DPI_FAILURE ==
         dpiContext_create(major, minor, &contextRes->context, &error))
     {
-        enif_release_resource(contextRes);
+        RELEASE_RESOURCE(contextRes, dpiContext);
+
         RETURNED_TRACE;
         return enif_raise_exception(
             env,
-            enif_make_tuple2(
+            enif_make_tuple4(
                 env, ATOM_ERROR,
-                dpiErrorInfoMap(env, error)));
+                enif_make_string(env, __FILE__, ERL_NIF_LATIN1),
+                enif_make_int(env, __LINE__), dpiErrorInfoMap(env, error)));
     }
 
     ERL_NIF_TERM contextResTerm = enif_make_resource(env, contextRes);
@@ -54,9 +56,9 @@ DPI_NIF_FUN(context_destroy)
         BADARG_EXCEPTION(0, "resource context");
 
     RAISE_EXCEPTION_ON_DPI_ERROR(
-        contextRes->context, dpiContext_destroy(contextRes->context), NULL);
+        contextRes->context, dpiContext_destroy(contextRes->context));
 
-    enif_release_resource(contextRes);
+    RELEASE_RESOURCE(contextRes, dpiContext);
 
     RETURNED_TRACE;
     return ATOM_OK;
@@ -75,7 +77,7 @@ DPI_NIF_FUN(context_getClientVersion)
 
     RAISE_EXCEPTION_ON_DPI_ERROR(
         contextRes->context,
-        dpiContext_getClientVersion(contextRes->context, &version), NULL);
+        dpiContext_getClientVersion(contextRes->context, &version));
 
     ERL_NIF_TERM map = enif_make_new_map(env);
 

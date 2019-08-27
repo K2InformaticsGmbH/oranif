@@ -30,7 +30,7 @@ void dpiDataPtr_res_dtor(ErlNifEnv *env, void *resource)
     dpiDataPtr_res *data = (dpiDataPtr_res *)resource;
     if (data->stmtRes)
     {
-        enif_release_resource(data->stmtRes);
+        RELEASE_RESOURCE(data->stmtRes, dpiStmt);
         data->stmtRes = NULL;
     }
 
@@ -41,7 +41,9 @@ DPI_NIF_FUN(data_ctor)
 {
     CHECK_ARGCOUNT(0);
 
-    dpiData_res *data = enif_alloc_resource(dpiData_type, sizeof(dpiData_res));
+    dpiData_res *data;
+    ALLOC_RESOURCE(data, dpiData);
+
     data->dpiData.isNull = 1; // starts out being null
 
     // erlang process independent environment to persist data between NIF calls
@@ -203,14 +205,9 @@ DPI_NIF_FUN(data_setBytes)
     CHECK_ARGCOUNT(2);
 
     dpiData_res *dataRes = NULL;
-    dpiDataPtr_res *dataPtr = NULL;
     dpiData *data = NULL;
 
-    if (enif_get_resource(env, argv[0], dpiDataPtr_type, (void **)&dataPtr))
-    {
-        data = dataPtr->dpiDataPtr;
-    }
-    else if (enif_get_resource(env, argv[0], dpiData_type, (void **)&dataRes))
+    if (enif_get_resource(env, argv[0], dpiData_type, (void **)&dataRes))
     {
         data = &dataRes->dpiData;
     }
@@ -374,7 +371,7 @@ DPI_NIF_FUN(data_get)
         if (!dataRes->stmtRes)
         {
             // first time
-            stmtRes = enif_alloc_resource(dpiStmt_type, sizeof(dpiStmt_res));
+            ALLOC_RESOURCE(stmtRes, dpiStmt);
             stmtRes->stmt = data->value.asStmt;
             dataRes->stmtRes = stmtRes;
         }
@@ -383,16 +380,22 @@ DPI_NIF_FUN(data_get)
             // possible reuse attempt
             stmtRes = (dpiStmt_res *)dataRes->stmtRes;
             if (stmtRes->stmt != data->value.asStmt)
-            {
-                // ref cursor changed
-                enif_release_resource(stmtRes);
-                stmtRes = enif_alloc_resource(
-                    dpiStmt_type, sizeof(dpiStmt_res));
                 stmtRes->stmt = data->value.asStmt;
-                dataRes->stmtRes = stmtRes;
-            }
         }
         dataRet = enif_make_resource(env, stmtRes);
+    }
+    break;
+    case DPI_NATIVE_TYPE_ROWID:
+    {
+        const char *string;
+        uint32_t stringlen;
+        RAISE_EXCEPTION_ON_DPI_ERROR(
+            dataRes->context,
+            dpiRowid_getStringValue(data->value.asRowid, &string, &stringlen));
+        ErlNifBinary bin;
+        enif_alloc_binary(stringlen, &bin);
+        memcpy(bin.data, string, stringlen);
+        dataRet = enif_make_binary(env, &bin);
     }
     break;
     default:
@@ -474,14 +477,14 @@ DPI_NIF_FUN(data_release)
     if (enif_get_resource(env, argv[0], dpiData_type, (void **)&res.dataRes))
     {
         // nothing to set to NULL
-        enif_release_resource(res.dataRes);
+        RELEASE_RESOURCE(res.dataRes, dpiData);
     }
     else if (enif_get_resource(
                  env, argv[0], dpiDataPtr_type, (void **)&res.dataPtrRes))
     {
         res.dataPtrRes->dpiDataPtr = NULL;
         if (res.dataPtrRes->isQueryValue == 1)
-            enif_release_resource(res.dataPtrRes);
+            RELEASE_RESOURCE(res.dataPtrRes, dpiDataPtr);
     }
     else
         BADARG_EXCEPTION(0, "resource data");

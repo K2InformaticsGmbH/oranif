@@ -6,10 +6,11 @@
 -export([load_unsafe/0, load_unsafe/1]).
 -export([safe/2, safe/3, safe/4]).
 
+-export([resource_count/0]).
+
 -include("dpiContext.hrl").
 -include("dpiConn.hrl").
 -include("dpiStmt.hrl").
--include("dpiQueryInfo.hrl").
 -include("dpiData.hrl").
 -include("dpiVar.hrl").
 
@@ -34,7 +35,7 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
                     end;
                 {error, {already_running, SlaveNode}} ->
                     %% TODO: Revisit if this is required. 
-                    %  case catch rpc_call(SlaveNode, erlang, monotonic_time, []) of
+                    %  case catch slave_call(SlaveNode, erlang, monotonic_time, []) of
                     %      Time when is_integer(Time) -> ok;
                     %      _ ->
                     %          catch unload(),
@@ -49,7 +50,7 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
 unload(SlaveNode) ->
     slave_call(SlaveNode, dpi, flush_process, []),
     Self = self(),
-    case catch rpc_call(SlaveNode, dpi, pids_get, []) of
+    case catch slave_call(SlaveNode, dpi, pids_get, []) of
         [] -> slave:stop(SlaveNode);
         [Self] -> slave:stop(SlaveNode);
         Refs -> io:format("~p still referencing ~p~n", [Refs, SlaveNode])
@@ -63,11 +64,24 @@ load_unsafe() -> load_unsafe(self()).
 load_unsafe(RemotePid) ->
     PrivDir = case code:priv_dir(?MODULE) of
         {error, _} ->
+            io:format(
+                user, "{~p,~p,~p} priv not found~n",
+                [?MODULE, ?FUNCTION_NAME, ?LINE]
+            ),
             EbinDir = filename:dirname(code:which(?MODULE)),
             AppPath = filename:dirname(EbinDir),
             filename:join(AppPath, "priv");
-        Path -> Path
+        Path ->
+            io:format(
+                user, "{~p,~p,~p} priv found ~p~n",
+                [?MODULE, ?FUNCTION_NAME, ?LINE, Path]
+            ),
+            Path
     end,
+    io:format(
+        user, "{~p,~p,~p} PrivDir ~p~n",
+        [?MODULE, ?FUNCTION_NAME, ?LINE, PrivDir]
+    ),
     case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), 0) of
         ok -> register_process(RemotePid);
         {error, {reload, _}} -> ok;
@@ -86,7 +100,7 @@ register_process(Pid) ->
     ExistingPids = pids_get(),
     NewPids = lists:filter(
             fun(P) ->
-                true == rpc_call(
+                true == slave_call(
                     node(P), erlang, is_process_alive, [P]
                 )
             end,
@@ -102,7 +116,7 @@ flush_process() ->
     ExistingPids = pids_get(),
     NewPids = lists:filter(
             fun(P) ->
-                true == rpc_call(
+                true == slave_call(
                     node(P), erlang, is_process_alive, [P]
                 )
             end,
@@ -149,17 +163,9 @@ start_slave(SlaveNodeName) when is_atom(SlaveNodeName) ->
     end.
 
 slave_call(SlaveNode, Mod, Fun, Args) ->
-    try rpc_call(SlaveNode, Mod, Fun, Args) of
-        Result -> Result
-    catch
-        _Class:Error ->
-            {error, Error}
-    end.
-
-rpc_call(Node, Mod, Fun, Args) ->
-    case (catch rpc:call(Node, Mod, Fun, Args)) of
-        {badrpc, {'EXIT', {Error, _}}} -> error(Error);
-        {badrpc, nodedown} -> error(slave_down);
+    case rpc:call(SlaveNode, Mod, Fun, Args) of
+        {badrpc, nodedown} -> {error, slave_down};
+        {badrpc, {'EXIT', {Error, _}}} -> Error;
         Result -> Result
     end.
 
@@ -174,3 +180,5 @@ safe(SlaveNode, Fun, Args) when is_function(Fun), is_list(Args) ->
 -spec safe(atom(), function()) -> term().
 safe(SlaveNode, Fun) when is_function(Fun)->
     slave_call(SlaveNode, erlang, apply, [Fun, []]).
+
+resource_count() -> ?NIF_NOT_LOADED.
