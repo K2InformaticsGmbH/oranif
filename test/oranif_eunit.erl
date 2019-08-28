@@ -589,6 +589,7 @@ stmtExecuteMany_varGetReturnedData(#{session := Conn} = TestCtx) ->
     Data = lists:seq($0, $z),
     DataLen = length(Data),
     Indices = lists:seq(0, 9),
+    rand:seed(exsplus, {0, 0, 0}),
     [dpiCall(
         TestCtx, var_setFromBytes,
         [
