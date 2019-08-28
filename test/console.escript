@@ -32,6 +32,7 @@ main([]) ->
     Data = lists:seq($0, $z),
     DataLen = length(Data),
     Indices = lists:seq(0, 9),
+    rand:seed(exsplus, {0, 0, 0}),
     [ok = dpi:var_setFromBytes(
         VarCol, Idx,
         << <<(lists:nth(rand:uniform(DataLen), Data))>>
