@@ -1467,7 +1467,6 @@ resourceCounting(#{context := Context, session := Conn} = TestCtx) ->
         statement   := IStmts,
         datapointer := IDataPtrs
     } = InitialRC = dpiCall(TestCtx, resource_count, []),
-
     Resources = [{
         dpiCall(
             TestCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
@@ -1498,7 +1497,6 @@ resourceCounting(#{context := Context, session := Conn} = TestCtx) ->
         statement   := Stmts,
         datapointer := DataPtrs
     } = dpiCall(TestCtx, resource_count, []),
-    
     ?assertEqual(5, Ctxs - ICtxs),
     ?assertEqual(5, Vars - IVars),
     ?assertEqual(5, Conns - IConns),
@@ -1506,14 +1504,16 @@ resourceCounting(#{context := Context, session := Conn} = TestCtx) ->
     ?assertEqual(5, Datas - IDatas),
     ?assertEqual(5, DataPtrs - IDataPtrs),
 
-    [begin
-        dpiCall(TestCtx, var_release, [Var]),
-        dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
-        dpiCall(TestCtx, conn_close, [LConn, [], <<>>]),
-        dpiCall(TestCtx, context_destroy, [Ctx]),
-        dpiCall(TestCtx, data_release, [Data])
-    end || {Ctx, LConn, Stmt, #{var := Var}, Data} <- Resources],
-
+    lists:foreach(
+        fun({Ctx, LConn, Stmt, #{var := Var}, Data}) ->
+            ok = dpiCall(TestCtx, var_release, [Var]),
+            ok = dpiCall(TestCtx, stmt_close, [Stmt, <<>>]),
+            ok = dpiCall(TestCtx, conn_close, [LConn, [], <<>>]),
+            ok = dpiCall(TestCtx, context_destroy, [Ctx]),
+            ok = dpiCall(TestCtx, data_release, [Data])
+        end,
+        Resources
+    ),
     ?assertEqual(InitialRC, dpiCall(TestCtx, resource_count, [])).
 
 %-------------------------------------------------------------------------------
