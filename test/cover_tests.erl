@@ -458,7 +458,6 @@ stmtExecuteMany_varGetReturnedData(#{session := Conn} = TestCtx) ->
     ),
     dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"col1">>, Var]),
     dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"rid">>, VarRowId]),
-
     Data = lists:seq($0, $z),
     DataLen = length(Data),
     Indices = lists:seq(0, 9),
@@ -1386,7 +1385,6 @@ dataGetStmt(#{session := Conn} = TestCtx) ->
             false, false, null
         ]
     ),
-
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, SQL, <<>>]),
     ok = dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"choice">>, VarChoice]),
     ok = dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"cursor">>, VarStmt]),
