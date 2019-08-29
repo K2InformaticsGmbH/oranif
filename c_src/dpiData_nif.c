@@ -26,14 +26,6 @@ void dpiData_res_dtor(ErlNifEnv *env, void *resource)
 void dpiDataPtr_res_dtor(ErlNifEnv *env, void *resource)
 {
     CALL_TRACE;
-
-    dpiDataPtr_res *data = (dpiDataPtr_res *)resource;
-    if (data->stmtRes)
-    {
-        RELEASE_RESOURCE(data->stmtRes, dpiStmt);
-        data->stmtRes = NULL;
-    }
-
     RETURNED_TRACE;
 }
 
@@ -110,13 +102,9 @@ DPI_NIF_FUN(data_setIntervalDS)
     int days, hours, minutes, seconds, fseconds;
 
     if (enif_get_resource(env, argv[0], dpiDataPtr_type, (void **)&dataPtr))
-    {
         data = dataPtr->dpiDataPtr;
-    }
     else if (enif_get_resource(env, argv[0], dpiData_type, (void **)&dataRes))
-    {
         data = &dataRes->dpiData;
-    }
     else
         BADARG_EXCEPTION(0, "resource data/ptr");
 
@@ -149,13 +137,9 @@ DPI_NIF_FUN(data_setIntervalYM)
     int years, months;
 
     if (enif_get_resource(env, argv[0], dpiDataPtr_type, (void **)&dataPtr))
-    {
         data = dataPtr->dpiDataPtr;
-    }
     else if (enif_get_resource(env, argv[0], dpiData_type, (void **)&dataRes))
-    {
         data = &dataRes->dpiData;
-    }
     else
         BADARG_EXCEPTION(0, "resource data/ptr");
 
@@ -181,13 +165,9 @@ DPI_NIF_FUN(data_setInt64)
     int64_t amount;
 
     if (enif_get_resource(env, argv[0], dpiDataPtr_type, (void **)&dataPtr))
-    {
         data = dataPtr->dpiDataPtr;
-    }
     else if (enif_get_resource(env, argv[0], dpiData_type, (void **)&dataRes))
-    {
         data = &dataRes->dpiData;
-    }
     else
         BADARG_EXCEPTION(0, "resource data/ptr");
 
@@ -208,9 +188,7 @@ DPI_NIF_FUN(data_setBytes)
     dpiData *data = NULL;
 
     if (enif_get_resource(env, argv[0], dpiData_type, (void **)&dataRes))
-    {
         data = &dataRes->dpiData;
-    }
     else
         BADARG_EXCEPTION(0, "resource data/ptr");
 
@@ -235,13 +213,9 @@ DPI_NIF_FUN(data_setIsNull)
     dpiData *data;
 
     if (enif_get_resource(env, argv[0], dpiDataPtr_type, (void **)&dataPtr))
-    {
         data = dataPtr->dpiDataPtr;
-    }
     else if (enif_get_resource(env, argv[0], dpiData_type, (void **)&dataRes))
-    {
         data = &dataRes->dpiData;
-    }
     else
         BADARG_EXCEPTION(0, "resource data/ptr");
 
@@ -367,21 +341,14 @@ DPI_NIF_FUN(data_get)
         break;
     case DPI_NATIVE_TYPE_STMT:
     {
-        dpiStmt_res *stmtRes = NULL;
-        if (!dataRes->stmtRes)
+        dpiStmt_res *stmtRes = (dpiStmt_res *)dataRes->stmtRes;
+        if (!stmtRes)
         {
             // first time
             ALLOC_RESOURCE(stmtRes, dpiStmt);
-            stmtRes->stmt = data->value.asStmt;
             dataRes->stmtRes = stmtRes;
         }
-        else
-        {
-            // possible reuse attempt
-            stmtRes = (dpiStmt_res *)dataRes->stmtRes;
-            if (stmtRes->stmt != data->value.asStmt)
-                stmtRes->stmt = data->value.asStmt;
-        }
+        stmtRes->stmt = data->value.asStmt;
         dataRet = enif_make_resource(env, stmtRes);
     }
     break;
@@ -415,13 +382,9 @@ DPI_NIF_FUN(data_getInt64) // TODO: unit test
     dpiData *data;
 
     if (enif_get_resource(env, argv[0], dpiDataPtr_type, (void **)&dataPtr))
-    {
         data = dataPtr->dpiDataPtr;
-    }
     else if (enif_get_resource(env, argv[0], dpiData_type, (void **)&dataRes))
-    {
         data = &dataRes->dpiData;
-    }
     else
         BADARG_EXCEPTION(0, "resource data/ptr");
 
@@ -450,6 +413,7 @@ DPI_NIF_FUN(data_getBytes) // TODO: unit test
         data = &dataRes->dpiData;
     else
         BADARG_EXCEPTION(0, "resource data/ptr");
+
     if (data->isNull)
     {
         RETURNED_TRACE;
@@ -482,6 +446,11 @@ DPI_NIF_FUN(data_release)
     else if (enif_get_resource(
                  env, argv[0], dpiDataPtr_type, (void **)&res.dataPtrRes))
     {
+        if (res.dataPtrRes->stmtRes)
+        {
+            RELEASE_RESOURCE(res.dataPtrRes->stmtRes, dpiStmt);
+            res.dataPtrRes->stmtRes = NULL;
+        }
         res.dataPtrRes->dpiDataPtr = NULL;
         if (res.dataPtrRes->isQueryValue == 1)
             RELEASE_RESOURCE(res.dataPtrRes, dpiDataPtr);
