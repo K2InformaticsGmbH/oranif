@@ -1387,35 +1387,27 @@ dataGetStmt(#{session := Conn} = TestCtx) ->
         ]
     ),
 
-    ?debugFmt("~s statements ~p", [?FUNCTION_NAME, maps:get(statement, dpiCall(TestCtx, resource_count, []))]),
-
     Stmt = dpiCall(TestCtx, conn_prepareStmt, [Conn, false, SQL, <<>>]),
     ok = dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"choice">>, VarChoice]),
     ok = dpiCall(TestCtx, stmt_bindByName, [Stmt, <<"cursor">>, VarStmt]),
-
-    ?debugFmt("~s statements ~p", [?FUNCTION_NAME, maps:get(statement, dpiCall(TestCtx, resource_count, []))]),
 
     % first-time get
     ok = dpiCall(TestCtx, data_setInt64, [DataChoice, 0]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assert(is_reference(dpiCall(TestCtx, data_get, [DataStmt]))),
 
-    ?debugFmt("~s statements ~p", [?FUNCTION_NAME, maps:get(statement, dpiCall(TestCtx, resource_count, []))]),
-
     % cached re-get
     ok = dpiCall(TestCtx, data_setInt64, [DataChoice, 1]),
     dpiCall(TestCtx, stmt_execute, [Stmt, []]),
     ?assert(is_reference(dpiCall(TestCtx, data_get, [DataStmt]))),
 
-    ?debugFmt("~s statements ~p", [?FUNCTION_NAME, maps:get(statement, dpiCall(TestCtx, resource_count, []))]),
-
     dpiCall(TestCtx, data_release, [DataChoice]),
     dpiCall(TestCtx, var_release, [VarChoice]),
     dpiCall(TestCtx, data_release, [DataStmt]),
     dpiCall(TestCtx, var_release, [VarStmt]),
-    ?debugFmt("~s statements ~p", [?FUNCTION_NAME, maps:get(statement, dpiCall(TestCtx, resource_count, []))]).
+    dpiCall(TestCtx, stmt_close, [Stmt, <<>>]).
 
-dataGetInt64(#{session := Conn} = TestCtx) ->
+dataGetInt64(TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource data/ptr from arg0",
         dpiCall(TestCtx, data_getInt64, [?BAD_REF])
@@ -1545,7 +1537,15 @@ setup(#{safe := true}) ->
 
 setup_context(TestCtx) ->
     SlaveCtx = setup(TestCtx),
-    ?debugFmt("~nsetup_context ~p", [dpiCall(SlaveCtx, resource_count, [])]),
+    maps:fold(
+        fun(K, V, _) ->
+            if V > 0 -> ?debugFmt("~p ~p = ~p", [?FUNCTION_NAME, K, V]);
+            true -> ok
+            end
+        end,
+        noacc,
+        dpiCall(SlaveCtx, resource_count, [])
+    ),
     SlaveCtx#{
         context => dpiCall(
             SlaveCtx, context_create, [?DPI_MAJOR_VERSION, ?DPI_MINOR_VERSION]
@@ -1555,7 +1555,15 @@ setup_context(TestCtx) ->
 setup_connecion(TestCtx) ->
     ContextCtx = #{context := Context} = setup_context(TestCtx),
     #{tns := Tns, user := User, password := Password} = getConfig(),
-    ?debugFmt("~nsetup_connecion ~p", [dpiCall(ContextCtx, resource_count, [])]),
+    maps:fold(
+        fun
+            (_K, 0, _) -> ok;
+            (context, 1, _) -> ok;
+            (K, V, _) -> ?assertEqual({K, 0}, {K, V})
+        end,
+        noacc,
+        dpiCall(ContextCtx, resource_count, [])
+    ),
     ContextCtx#{
         session => dpiCall(
             ContextCtx, conn_create,
@@ -1568,11 +1576,26 @@ setup_connecion(TestCtx) ->
 
 cleanup(#{session := Connnnection} = Ctx) ->
     dpiCall(Ctx, conn_close, [Connnnection, [], <<>>]),
-    ?debugFmt("~ncleanup(session) ~p", [dpiCall(Ctx, resource_count, [])]),
+    maps:fold(
+        fun
+            (_K, 0, _) -> ok;
+            (context, 1, _) -> ok;
+            (K, V, _) -> ?debugFmt("~p ~p = ~p", [?FUNCTION_NAME, K, V])
+        end,
+        noacc,
+        dpiCall(Ctx, resource_count, [])
+    ),
     cleanup(maps:without([session], Ctx));
 cleanup(#{context := Context} = Ctx) ->
     dpiCall(Ctx, context_destroy, [Context]),
-    ?debugFmt("~ncleanup(context) ~p", [dpiCall(Ctx, resource_count, [])]),
+    maps:fold(
+        fun
+            (_K, 0, _) -> ok;
+            (K, V, _) -> ?assertEqual({K, 0}, {K, V})
+        end,
+        noacc,
+        dpiCall(Ctx, resource_count, [])
+    ),
     cleanup(maps:without([context], Ctx));
 cleanup(_) -> ok.
 
@@ -1663,7 +1686,6 @@ getConfig() ->
     ?F(resourceCounting)
 ]).
 
--ifdef(ENABLE).
 unsafe_no_context_test_() ->
     {
         setup,
@@ -1687,7 +1709,6 @@ no_context_test_() ->
         fun cleanup/1,
         ?W(?NO_CONTEXT_TESTS)
     }.
--endif.
 
 session_test_() ->
     {
@@ -1697,7 +1718,6 @@ session_test_() ->
         ?W(?AFTER_CONNECTION_TESTS)
     }.
 
--ifdef(ENABLE).
 load_test() ->
     % This is a place holder to trigger the upgrade and unload calbacks of the
     % NIF code. This doesn't test anything only ensures code coverage.
@@ -1718,4 +1738,3 @@ load_test() ->
     % delete that old code, too. Now all the code is gone, triggering unload
     % callback again
     code:purge(dpi).
--endif.

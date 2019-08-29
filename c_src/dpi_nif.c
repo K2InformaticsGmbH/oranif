@@ -127,14 +127,14 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     oranif_st *st = enif_alloc(sizeof(oranif_st));
     if (st == NULL)
     {
-        E("failed allocate private structure of %d bytes", sizeof(oranif_st));
+        E("failed allocate private structure of %zd bytes\r\n", sizeof(oranif_st));
         return 1;
     }
 
     st->lock = enif_mutex_create("oranif");
     if (st->lock == NULL)
     {
-        E("failed to create oranif mutex");
+        E("failed to create oranif mutex\r\n");
         return 1;
     }
 
@@ -173,14 +173,14 @@ static int upgrade(ErlNifEnv *env, void **priv_data,
     oranif_st *st = enif_alloc(sizeof(oranif_st));
     if (st == NULL)
     {
-        E("failed allocate private structure of %d bytes", sizeof(oranif_st));
+        E("failed allocate private structure of %zd bytes\r\n", sizeof(oranif_st));
         return 1;
     }
 
     st->lock = enif_mutex_create("oranif");
     if (st->lock == NULL)
     {
-        E("failed to create oranif mutex");
+        E("failed to create oranif mutex\r\n");
         return 1;
     }
 
