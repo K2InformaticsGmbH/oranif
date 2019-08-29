@@ -454,6 +454,11 @@ DPI_NIF_FUN(data_release)
     else if (enif_get_resource(
                  env, argv[0], dpiDataPtr_type, (void **)&res.dataPtrRes))
     {
+        if (res.dataPtrRes->stmtRes)
+        {
+            RELEASE_RESOURCE(res.dataPtrRes->stmtRes, dpiStmt);
+            res.dataPtrRes->stmtRes = NULL;
+        }
         res.dataPtrRes->dpiDataPtr = NULL;
         if (res.dataPtrRes->isQueryValue == 1)
             RELEASE_RESOURCE(res.dataPtrRes, dpiDataPtr);
