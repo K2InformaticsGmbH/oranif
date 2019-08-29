@@ -26,14 +26,6 @@ void dpiData_res_dtor(ErlNifEnv *env, void *resource)
 void dpiDataPtr_res_dtor(ErlNifEnv *env, void *resource)
 {
     CALL_TRACE;
-
-    dpiDataPtr_res *data = (dpiDataPtr_res *)resource;
-    if (data->stmtRes)
-    {
-        RELEASE_RESOURCE(data->stmtRes, dpiStmt);
-        data->stmtRes = NULL;
-    }
-
     RETURNED_TRACE;
 }
 
