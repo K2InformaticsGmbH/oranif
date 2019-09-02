@@ -1,9 +1,9 @@
 -module(dpi).
 -compile({parse_transform, dpi_transform}).
 
--export([load/1, unload/1, register_process/1]).
+-export([load/1, unload/1]).
 
--export([load_unsafe/0, load_unsafe/1]).
+-export([load_unsafe/0]).
 -export([safe/2, safe/3, safe/4]).
 
 -export([resource_count/0]).
@@ -25,37 +25,51 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
         true ->
             case start_slave(SlaveNodeName) of
                 {ok, SlaveNode} ->
-                    case slave_call(SlaveNode, code, add_paths, [code:get_path()]) of
+                    case slave_call(
+                        SlaveNode, code, add_paths, [code:get_path()]
+                    ) of
                         ok ->
                             case slave_call(SlaveNode, dpi, load_unsafe, []) of
-                                ok -> SlaveNode;
-                                Error -> Error
+                                ok -> reg(SlaveNode, self());
+                                {error, _} = Error -> Error
                             end;
-                        Error -> Error
+                        {error, _} = Error -> Error
                     end;
                 {error, {already_running, SlaveNode}} ->
-                    %% TODO: Revisit if this is required. 
-                    %  case catch slave_call(SlaveNode, erlang, monotonic_time, []) of
-                    %      Time when is_integer(Time) -> ok;
-                    %      _ ->
-                    %          catch unload(),
-                    %          load(SlaveNodeName)
-                    %  end
-                    SlaveNode;
-                Error -> Error
+                    reg(SlaveNode, self());
+                {error, _} = Error -> Error
             end
     end.
 
 -spec unload(atom()) -> ok.
-unload(SlaveNode) ->
-    slave:stop(SlaveNode).
+unload(SlaveNode) when is_atom(SlaveNode) ->
+    UnloadingPid = self(),
+    case lists:foldl(
+        fun
+            ({?MODULE, SN, _} = Name, Acc) when SN == SlaveNode ->
+                Pid = global:whereis_name(Name),
+                case
+                    is_pid(Pid) andalso
+                    Pid /= UnloadingPid andalso
+                    rpc:call(node(Pid), erlang, is_process_alive, [Pid])
+                of
+                    true -> [Pid | Acc];
+                    _ ->
+                        ok = global:unregister_name(Name),
+                        Acc
+                end;
+            (_, Acc) -> Acc
+        end, [], global:registered_names()
+    ) of
+        [] -> slave:stop(SlaveNode);
+        _ -> ok
+    end.
 
 %===============================================================================
 %   NIF test / debug interface (DO NOT use in production)
 %===============================================================================
 
-load_unsafe() -> load_unsafe(self()).
-load_unsafe(RemotePid) ->
+load_unsafe() ->
     PrivDir = case code:priv_dir(?MODULE) of
         {error, _} ->
             io:format(
@@ -77,16 +91,21 @@ load_unsafe(RemotePid) ->
         [?MODULE, ?FUNCTION_NAME, ?LINE, PrivDir]
     ),
     case erlang:load_nif(filename:join(PrivDir, "dpi_nif"), 0) of
-        ok -> register_process(RemotePid);
+        ok -> ok;
         {error, {reload, _}} -> ok;
         {error, Error} -> {error, Error}
     end.
 
-register_process(_Pid) -> ok.
-
 %===============================================================================
 %   local helper functions
 %===============================================================================
+
+reg(SlaveNode, Pid) ->
+    Name = {?MODULE, SlaveNode, make_ref()},
+    case global:register_name(Name, Pid) of
+        yes -> SlaveNode;
+        no -> {error, "failed to register process globally"}
+    end.
 
 start_slave(SlaveNodeName) when is_atom(SlaveNodeName) ->
     [_,SlaveHost] = string:tokens(atom_to_list(node()), "@"),
