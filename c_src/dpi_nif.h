@@ -187,7 +187,6 @@ extern ERL_NIF_TERM dpiErrorInfoMap(ErlNifEnv *, dpiErrorInfo);
 
 typedef struct
 {
-    ErlNifEnv *env;
     ErlNifMutex *lock;
     unsigned long dpiContext_count;
     unsigned long dpiConn_count;
@@ -195,7 +194,6 @@ typedef struct
     unsigned long dpiData_count;
     unsigned long dpiDataPtr_count;
     unsigned long dpiVar_count;
-    ERL_NIF_TERM pids;
 } oranif_st;
 
 #define ALLOC_RESOURCE(_var, _dpiType)                                       \

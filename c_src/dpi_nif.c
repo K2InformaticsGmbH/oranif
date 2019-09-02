@@ -17,7 +17,6 @@ ERL_NIF_TERM ATOM_FALSE;
 ERL_NIF_TERM ATOM_ERROR;
 ERL_NIF_TERM ATOM_ENOMEM;
 
-static ERL_NIF_TERM processes(ErlNifEnv *, int, const ERL_NIF_TERM[]);
 DPI_NIF_FUN(resource_count);
 
 static ErlNifFunc nif_funcs[] = {
@@ -26,8 +25,6 @@ static ErlNifFunc nif_funcs[] = {
     DPISTMT_NIFS,
     DPIDATA_NIFS,
     DPIVAR_NIFS,
-    {"pids_get", 0, processes},
-    {"pids_set", 1, processes},
     {"resource_count", 0, resource_count}};
 
 /*******************************************************************************
@@ -117,59 +114,6 @@ ERL_NIF_TERM dpiErrorInfoMap(ErlNifEnv *env, dpiErrorInfo e)
  * NIF Interface
  ******************************************************************************/
 
-static ERL_NIF_TERM processes(
-    ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
-{
-    CALL_TRACE;
-
-    ERL_NIF_TERM pids;
-    oranif_st *st = (oranif_st *)enif_priv_data(env);
-    unsigned len;
-    // pids_get
-    if (argc == 0)
-    {
-        D("pids_get\r\n");
-
-        if (!enif_get_list_length(st->env, st->pids, &len))
-            BADARG_EXCEPTION(0, "list length of p->pids");
-        D("pids_get p->pids has %u\r\n", len);
-
-        enif_mutex_lock(st->lock);
-        pids = enif_make_copy(env, st->pids);
-        enif_mutex_unlock(st->lock);
-
-        RETURNED_TRACE;
-        return pids;
-    }
-    // pids_set([pid()])
-    else if (argc == 1)
-    {
-        D("pids_set\r\n");
-
-        if (!enif_is_list(env, argv[0]))
-            BADARG_EXCEPTION(0, "list of pids");
-
-        if (!enif_get_list_length(env, argv[0], &len))
-            BADARG_EXCEPTION(0, "list length of pids");
-        D("pids_set argv[0] has %u\r\n", len);
-
-        enif_mutex_lock(st->lock);
-        st->pids = enif_make_copy(st->env, argv[0]);
-        enif_mutex_unlock(st->lock);
-
-        if (!enif_get_list_length(st->env, st->pids, &len))
-            BADARG_EXCEPTION(0, "list length of p->pids");
-        D("pids_set p->pids has %u\r\n", len);
-
-        RETURNED_TRACE;
-        return ATOM_OK;
-    }
-    else
-    {
-        RAISE_STR_EXCEPTION("Wrong number of arguments. Required 0 or 1");
-    }
-}
-
 static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 {
     CALL_TRACE;
@@ -188,14 +132,12 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
         return 1;
     }
 
-    st->env = enif_alloc_env();
     st->dpiVar_count = 0;
     st->dpiData_count = 0;
     st->dpiStmt_count = 0;
     st->dpiConn_count = 0;
     st->dpiContext_count = 0;
     st->dpiDataPtr_count = 0;
-    st->pids = enif_make_list(st->env, 0);
 
     DEF_RES(dpiContext);
     DEF_RES(dpiConn);
@@ -226,7 +168,8 @@ static int upgrade(
     oranif_st *st = enif_alloc(sizeof(oranif_st));
     if (st == NULL)
     {
-        E("failed allocate private structure of %zd bytes\r\n", sizeof(oranif_st));
+        E("failed allocate private structure of %zd bytes\r\n",
+          sizeof(oranif_st));
         return 1;
     }
 
@@ -257,7 +200,6 @@ static void unload(ErlNifEnv *env, void *priv_data)
 
     oranif_st *st = (oranif_st *)priv_data;
     enif_mutex_destroy(st->lock);
-    enif_free_env(st->env);
     enif_free(priv_data);
 
     RETURNED_TRACE;

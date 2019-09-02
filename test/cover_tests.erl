@@ -1684,7 +1684,8 @@ getConfig() ->
     ?F(resourceCounting)
 ]).
 
--ifdef(NOTBLOCKED).
+%-define(SLAVE_REUSE_TEST, true).
+-ifndef(SLAVE_REUSE_TEST).
 
 unsafe_no_context_test_() ->
     {
@@ -1738,7 +1739,8 @@ load_test() ->
     % delete that old code, too. Now all the code is gone, triggering unload
     % callback again
     code:purge(dpi).
--endif.
+
+-else.
 
 slave_reuse_test() ->
     ?assertEqual(ok, dpi:load_unsafe()),
@@ -1814,3 +1816,5 @@ slave_client_proc(TestPid) ->
         exit ->
             TestPid ! {self(), exited}
     end.
+
+-endif.

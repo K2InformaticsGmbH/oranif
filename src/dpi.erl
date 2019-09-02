@@ -1,7 +1,7 @@
 -module(dpi).
 -compile({parse_transform, dpi_transform}).
 
--export([load/1, unload/1, register_process/1, pids_get/0, flush_process/0]).
+-export([load/1, unload/1, register_process/1]).
 
 -export([load_unsafe/0, load_unsafe/1]).
 -export([safe/2, safe/3, safe/4]).
@@ -48,13 +48,7 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
 
 -spec unload(atom()) -> ok.
 unload(SlaveNode) ->
-    slave_call(SlaveNode, dpi, flush_process, []),
-    Self = self(),
-    case catch slave_call(SlaveNode, dpi, pids_get, []) of
-        [] -> slave:stop(SlaveNode);
-        [Self] -> slave:stop(SlaveNode);
-        Refs -> io:format("~p still referencing ~p~n", [Refs, SlaveNode])
-    end.
+    slave:stop(SlaveNode).
 
 %===============================================================================
 %   NIF test / debug interface (DO NOT use in production)
@@ -88,45 +82,7 @@ load_unsafe(RemotePid) ->
         {error, Error} -> {error, Error}
     end.
 
--spec(pids_get() -> [pid()]).
-pids_get() ->
-    exit({nif_library_not_loaded, dpi, pids_get}).
-
--spec(pids_set([pid()]) -> ok).
-pids_set(Pids) when is_list(Pids)  ->
-    exit({nif_library_not_loaded, dpi, pids_set}).
-
-register_process(Pid) ->
-    ExistingPids = pids_get(),
-    NewPids = lists:filter(
-            fun(P) ->
-                true == slave_call(
-                    node(P), erlang, is_process_alive, [P]
-                )
-            end,
-            [Pid | ExistingPids]
-        ),
-    io:format(
-        user, "~p: Adding ~p to ~p now ~p~n",
-        [{?MODULE, ?FUNCTION_NAME, ?LINE}, Pid, ExistingPids, NewPids]
-    ),
-    pids_set(NewPids).
-
-flush_process() ->
-    ExistingPids = pids_get(),
-    NewPids = lists:filter(
-            fun(P) ->
-                true == slave_call(
-                    node(P), erlang, is_process_alive, [P]
-                )
-            end,
-            ExistingPids
-        ),
-    io:format(
-        user, "~p: flushing ~p to ~p~n",
-        [{?MODULE, ?FUNCTION_NAME, ?LINE}, ExistingPids, NewPids]
-    ),
-    pids_set(NewPids).
+register_process(_Pid) -> ok.
 
 %===============================================================================
 %   local helper functions
