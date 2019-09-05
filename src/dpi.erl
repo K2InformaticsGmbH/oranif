@@ -69,7 +69,9 @@ unload(SlaveNode) when is_atom(SlaveNode) ->
             (_, Acc) -> Acc
         end, [], global:registered_names()
     ) of
-        [] -> slave:stop(SlaveNode);
+        [] ->
+          slave:stop(SlaveNode),
+          unloaded;
         _ -> ok
     end.
 
