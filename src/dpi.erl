@@ -47,7 +47,7 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
             end
     end.
 
--spec unload(atom()) -> ok.
+-spec unload(atom()) -> ok | unloaded.
 unload(SlaveNode) when is_atom(SlaveNode) ->
     UnloadingPid = self(),
     case lists:foldl(

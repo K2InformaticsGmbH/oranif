@@ -1596,7 +1596,7 @@ cleanup(#{context := Context} = Ctx) ->
     ),
     cleanup(maps:without([context], Ctx));
 cleanup(#{safe := true, node := SlaveNode}) ->
-    ok = dpi:unload(SlaveNode);
+    unloaded = dpi:unload(SlaveNode);
 cleanup(_) -> ok.
 
 %-------------------------------------------------------------------------------
@@ -1745,7 +1745,7 @@ slave_reuse_test() ->
     Node = dpi:load(?SLAVE),
     ?assertEqual([Node], nodes(hidden)),
     ?assertEqual([self()], reg_pids(Node)),
-    ?assertEqual(ok, dpi:unload(Node)),
+    ?assertEqual(unloaded, dpi:unload(Node)),
     ?assertEqual([], reg_pids(Node)),
 
     % multiple load / unload test
@@ -1809,7 +1809,7 @@ slave_reuse_test() ->
     ?assertEqual([Node], nodes(hidden)),
 
     % console cleanup simulation after last process carsh
-    ?assertEqual(ok, dpi:unload(Node)),
+    ?assertEqual(unloaded, dpi:unload(Node)),
     ?assertEqual([], reg_pids(Node)),
     ?assertEqual([], nodes(hidden)).
     
