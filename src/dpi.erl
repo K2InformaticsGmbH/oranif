@@ -30,14 +30,20 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
                     ) of
                         ok ->
                             case slave_call(SlaveNode, dpi, load_unsafe, []) of
-                                ok -> reg(SlaveNode, self());
-                                {error, _} = Error -> Error
+                                ok ->
+                                    case reg(SlaveNode) of
+                                        SlaveNode -> SlaveNode;
+                                        Error ->
+                                            slave:stop(SlaveNode),
+                                            Error
+                                    end;
+                                Error -> Error
                             end;
-                        {error, _} = Error -> Error
+                        Error -> Error
                     end;
                 {error, {already_running, SlaveNode}} ->
-                    reg(SlaveNode, self());
-                {error, _} = Error -> Error
+                    reg(SlaveNode);
+                Error -> Error
             end
     end.
 
@@ -46,7 +52,9 @@ unload(SlaveNode) when is_atom(SlaveNode) ->
     UnloadingPid = self(),
     case lists:foldl(
         fun
-            ({?MODULE, SN, _} = Name, Acc) when SN == SlaveNode ->
+            ({?MODULE, SN, N, _} = Name, Acc)
+                when SN == SlaveNode, N == node()
+            ->
                 Pid = global:whereis_name(Name),
                 case
                     is_pid(Pid) andalso
@@ -100,9 +108,9 @@ load_unsafe() ->
 %   local helper functions
 %===============================================================================
 
-reg(SlaveNode, Pid) ->
-    Name = {?MODULE, SlaveNode, make_ref()},
-    case global:register_name(Name, Pid) of
+reg(SlaveNode) ->
+    Name = {?MODULE, SlaveNode, node(), make_ref()},
+    case global:register_name(Name, self()) of
         yes -> SlaveNode;
         no -> {error, "failed to register process globally"}
     end.

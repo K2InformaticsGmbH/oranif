@@ -1829,7 +1829,7 @@ slave_client_proc(TestPid) ->
 reg_pids(Node) ->
     lists:filtermap(
         fun
-            ({dpi, N, _} = Name) when N == Node ->
+            ({dpi, N, SN, _} = Name) when N == Node, SN == node() ->
                 case global:whereis_name(Name) of
                     Pid when is_pid(Pid) -> {true, Pid};
                     _ -> false
