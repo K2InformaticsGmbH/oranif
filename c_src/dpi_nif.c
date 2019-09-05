@@ -121,7 +121,7 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
     oranif_st *st = enif_alloc(sizeof(oranif_st));
     if (st == NULL)
     {
-        E("failed allocate private structure of %zd bytes\r\n", sizeof(oranif_st));
+        E("failed allocate private structure of %zu bytes\r\n", sizeof(oranif_st));
         return 1;
     }
 
@@ -168,8 +168,7 @@ static int upgrade(
     oranif_st *st = enif_alloc(sizeof(oranif_st));
     if (st == NULL)
     {
-        E("failed allocate private structure of %zd bytes\r\n",
-          sizeof(oranif_st));
+        E("failed allocate private structure of %zu bytes\r\n", sizeof(oranif_st));
         return 1;
     }
 
