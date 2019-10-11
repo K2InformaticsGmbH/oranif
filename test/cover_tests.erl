@@ -1215,6 +1215,28 @@ dataSetInt64(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, data_release, [Data1]),
     dpiCall(TestCtx, var_release, [Var]).
 
+dataSetDouble(#{session := Conn} = TestCtx) ->
+    ?ASSERT_EX(
+        "Unable to retrieve resource data/ptr from arg0",
+        dpiCall(TestCtx, data_setDouble, [?BAD_REF, 1])
+    ),
+    Data = dpiCall(TestCtx, data_ctor, []),
+    ?ASSERT_EX(
+        "Unable to retrieve double amount from arg1",
+        dpiCall(TestCtx, data_setDouble, [Data, badDouble])
+    ),
+    ?assertEqual(ok, dpiCall(TestCtx, data_setDouble, [Data, 123.45])),
+    dpiCall(TestCtx, data_release, [Data]),
+    #{var := Var, data := [Data1]} = dpiCall(
+        TestCtx, conn_newVar, [
+            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
+            1, 1, true, true, null
+        ]
+    ),
+    ?assertEqual(ok, dpiCall(TestCtx, data_setDouble, [Data1, 987.654])),
+    dpiCall(TestCtx, data_release, [Data1]),
+    dpiCall(TestCtx, var_release, [Var]).
+
 dataSetBytes(TestCtx) ->
     ?ASSERT_EX(
         "Unable to retrieve resource data/ptr from arg0",
@@ -1674,6 +1696,7 @@ getConfig() ->
     ?F(dataSetIntervalDS),
     ?F(dataSetIntervalYM),
     ?F(dataSetInt64),
+    ?F(dataSetDouble),
     ?F(dataSetBytes),
     ?F(dataSetIsNull),
     ?F(dataGet),
