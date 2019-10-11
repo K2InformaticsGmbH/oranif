@@ -1229,7 +1229,7 @@ dataSetDouble(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     #{var := Var, data := [Data1]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
+            Conn, 'DPI_ORACLE_TYPE_NATIVE_DOUBLE', 'DPI_NATIVE_TYPE_DOUBLE',
             1, 1, true, true, null
         ]
     ),
