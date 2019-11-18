@@ -42,11 +42,16 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
                         Error -> Error
                     end;
                 {error, {already_running, SlaveNode}} ->
-                    case global:wheris_name(get_reg_name(SlaveNode)) of
-                        Pid when Pid == self() ->
-                            SlaveNode;
-                        _ ->
-                            reg(SlaveNode)
+                    case get_reg_name(SlaveNode) of
+                        none ->
+                            reg(SlaveNode);
+                        Name ->
+                            case global:whereis_name(Name) of
+                                Pid when Pid == self() ->
+                                    SlaveNode;
+                                _ ->
+                                    reg(SlaveNode)
+                            end
                     end;
                 Error -> Error
             end
