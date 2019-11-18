@@ -165,9 +165,11 @@ safe(SlaveNode, Fun, Args) when is_function(Fun), is_list(Args) ->
 safe(SlaveNode, Fun) when is_function(Fun)->
     slave_call(SlaveNode, erlang, apply, [Fun, []]).
 
+-spec get_reg_name(atom()) -> none | {atom, node(), node(), reference()}.
 get_reg_name(SlaveNode) ->
     get_reg_name(SlaveNode, global:registered_names()).
 
+-spec get_reg_name(atom(), list()) -> none | {atom, node(), node(), reference()}.
 get_reg_name(_SlaveNode, []) ->
     none;
 get_reg_name(SlaveN, [{?MODULE, SN, N, _} = Name | _]) when SN == SlaveN, N == node() ->
