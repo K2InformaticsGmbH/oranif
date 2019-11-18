@@ -42,7 +42,12 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
                         Error -> Error
                     end;
                 {error, {already_running, SlaveNode}} ->
-                    reg(SlaveNode);
+                    case get_reg_name(SlaveNode) of
+                        none ->
+                            reg(SlaveNode);
+                        _ ->
+                            SlaveNode
+                    end;
                 Error -> Error
             end
     end.
@@ -50,29 +55,23 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
 -spec unload(atom()) -> ok | unloaded.
 unload(SlaveNode) when is_atom(SlaveNode) ->
     UnloadingPid = self(),
-    case lists:foldl(
-        fun
-            ({?MODULE, SN, N, _} = Name, Acc)
-                when SN == SlaveNode, N == node()
-            ->
-                Pid = global:whereis_name(Name),
-                case
-                    is_pid(Pid) andalso
-                    Pid /= UnloadingPid andalso
-                    rpc:call(node(Pid), erlang, is_process_alive, [Pid])
-                of
-                    true -> [Pid | Acc];
-                    _ ->
-                        ok = global:unregister_name(Name),
-                        Acc
-                end;
-            (_, Acc) -> Acc
-        end, [], global:registered_names()
-    ) of
-        [] ->
-          slave:stop(SlaveNode),
-          unloaded;
-        _ -> ok
+    case get_reg_name(SlaveNode) of
+        none ->
+            ok;
+        Name ->
+            Pid = global:whereis_name(Name),
+            case
+                is_pid(Pid) andalso
+                Pid /= UnloadingPid andalso
+                rpc:call(node(Pid), erlang, is_process_alive, [Pid])
+            of
+                true ->
+                    ok;
+                _ ->
+                    ok = global:unregister_name(Name),
+                    slave:stop(SlaveNode),
+                    unloaded
+            end
     end.
 
 %===============================================================================
@@ -165,5 +164,15 @@ safe(SlaveNode, Fun, Args) when is_function(Fun), is_list(Args) ->
 -spec safe(atom(), function()) -> term().
 safe(SlaveNode, Fun) when is_function(Fun)->
     slave_call(SlaveNode, erlang, apply, [Fun, []]).
+
+get_reg_name(SlaveNode) ->
+    get_reg_name(SlaveNode, global:registered_names()).
+
+get_reg_name(_SlaveNode, []) ->
+    none;
+get_reg_name(SlaveN, [{?MODULE, SN, N, _} = Name | _]) when SN == SlaveN, N == node() ->
+    Name;
+get_reg_name(SlaveNode, [_ | Rest]) ->
+    get_reg_name(SlaveNode, Rest).
 
 resource_count() -> ?NIF_NOT_LOADED.
