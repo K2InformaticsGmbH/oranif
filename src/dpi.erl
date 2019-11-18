@@ -42,11 +42,19 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
                         Error -> Error
                     end;
                 {error, {already_running, SlaveNode}} ->
-                    Name = get_reg_name(SlaveNode),
-                    case global:whereis_name(Name) of
-                        Pid when Pid == self() ->
+                    Result = lists:foldl(
+                        fun(Name, Acc) ->
+                            case global:whereis_name(Name) of
+                                Pid when Pid == self() ->
+                                    registered;
+                                _ ->
+                                    Acc
+                            end
+                        end, none, get_reg_names(SlaveNode)),
+                    case Result of
+                        registered ->
                             SlaveNode;
-                        _ ->
+                        none ->
                             reg(SlaveNode)
                     end;
                 Error -> Error
@@ -57,23 +65,19 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
 unload(SlaveNode) when is_atom(SlaveNode) ->
     UnloadingPid = self(),
     case lists:foldl(
-        fun
-            ({?MODULE, SN, N, _} = Name, Acc)
-                when SN == SlaveNode, N == node()
-            ->
-                Pid = global:whereis_name(Name),
-                case
-                    is_pid(Pid) andalso
-                    Pid /= UnloadingPid andalso
-                    rpc:call(node(Pid), erlang, is_process_alive, [Pid])
-                of
-                    true -> [Pid | Acc];
-                    _ ->
-                        ok = global:unregister_name(Name),
-                        Acc
-                end;
-            (_, Acc) -> Acc
-        end, [], global:registered_names()
+        fun(Name, Acc) ->
+            Pid = global:whereis_name(Name),
+            case
+                is_pid(Pid) andalso
+                Pid /= UnloadingPid andalso
+                rpc:call(node(Pid), erlang, is_process_alive, [Pid])
+            of
+                true -> [Pid | Acc];
+                _ ->
+                    ok = global:unregister_name(Name),
+                    Acc
+            end
+        end, [], get_reg_names(SlaveNode)
     ) of
         [] ->
           slave:stop(SlaveNode),
@@ -172,16 +176,16 @@ safe(SlaveNode, Fun, Args) when is_function(Fun), is_list(Args) ->
 safe(SlaveNode, Fun) when is_function(Fun)->
     slave_call(SlaveNode, erlang, apply, [Fun, []]).
 
--spec get_reg_name(atom()) -> none | {atom, node(), node(), reference()}.
-get_reg_name(SlaveNode) ->
-    get_reg_name(SlaveNode, global:registered_names()).
+-spec get_reg_names(atom()) -> [{atom, node(), node(), reference()}].
+get_reg_names(SlaveNode) ->
+    get_reg_names(SlaveNode, global:registered_names(), []).
 
--spec get_reg_name(atom(), list()) -> none | {atom, node(), node(), reference()}.
-get_reg_name(_SlaveNode, []) ->
-    none;
-get_reg_name(SlaveN, [{?MODULE, SN, N, _} = Name | _]) when SN == SlaveN, N == node() ->
-    Name;
-get_reg_name(SlaveNode, [_ | Rest]) ->
-    get_reg_name(SlaveNode, Rest).
+-spec get_reg_names(atom(), list(), list()) -> [{atom, node(), node(), reference()}].
+get_reg_names(_SlaveNode, [], Acc) ->
+    Acc;
+get_reg_names(SlaveN, [{?MODULE, SN, N, _} = Name | Rest], Acc) when SN == SlaveN, N == node() ->
+    get_reg_names(SlaveN, Rest, [Name | Acc]);
+get_reg_names(SlaveNode, [_ | Rest], Acc) ->
+    get_reg_names(SlaveNode, Rest, Acc).
 
 resource_count() -> ?NIF_NOT_LOADED.
