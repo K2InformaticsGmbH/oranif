@@ -62,7 +62,8 @@ unload(SlaveNode) when is_atom(SlaveNode) ->
     UnloadingPid = self(),
     case get_reg_name(SlaveNode) of
         none ->
-            ok;
+            slave:stop(SlaveNode),
+            unloaded;
         Name ->
             Pid = global:whereis_name(Name),
             case
@@ -73,9 +74,7 @@ unload(SlaveNode) when is_atom(SlaveNode) ->
                 true ->
                     ok;
                 _ ->
-                    ok = global:unregister_name(Name),
-                    slave:stop(SlaveNode),
-                    unloaded
+                    ok = global:unregister_name(Name)
             end
     end.
 
