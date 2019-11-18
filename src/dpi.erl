@@ -42,16 +42,12 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
                         Error -> Error
                     end;
                 {error, {already_running, SlaveNode}} ->
-                    case get_reg_name(SlaveNode) of
-                        none ->
-                            reg(SlaveNode);
-                        Name ->
-                            case global:whereis_name(Name) of
-                                Pid when Pid == self() ->
-                                    SlaveNode;
-                                _ ->
-                                    reg(SlaveNode)
-                            end
+                    Name = get_reg_name(SlaveNode),
+                    case global:whereis_name(Name) of
+                        Pid when Pid == self() ->
+                            SlaveNode;
+                        _ ->
+                            reg(SlaveNode)
                     end;
                 Error -> Error
             end
@@ -60,22 +56,29 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
 -spec unload(atom()) -> ok | unloaded.
 unload(SlaveNode) when is_atom(SlaveNode) ->
     UnloadingPid = self(),
-    case get_reg_name(SlaveNode) of
-        none ->
-            slave:stop(SlaveNode),
-            unloaded;
-        Name ->
-            Pid = global:whereis_name(Name),
-            case
-                is_pid(Pid) andalso
-                Pid /= UnloadingPid andalso
-                rpc:call(node(Pid), erlang, is_process_alive, [Pid])
-            of
-                true ->
-                    ok;
-                _ ->
-                    ok = global:unregister_name(Name)
-            end
+    case lists:foldl(
+        fun
+            ({?MODULE, SN, N, _} = Name, Acc)
+                when SN == SlaveNode, N == node()
+            ->
+                Pid = global:whereis_name(Name),
+                case
+                    is_pid(Pid) andalso
+                    Pid /= UnloadingPid andalso
+                    rpc:call(node(Pid), erlang, is_process_alive, [Pid])
+                of
+                    true -> [Pid | Acc];
+                    _ ->
+                        ok = global:unregister_name(Name),
+                        Acc
+                end;
+            (_, Acc) -> Acc
+        end, [], global:registered_names()
+    ) of
+        [] ->
+          slave:stop(SlaveNode),
+          unloaded;
+        _ -> ok
     end.
 
 %===============================================================================
