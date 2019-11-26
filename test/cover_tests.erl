@@ -1739,6 +1739,13 @@ load_test() ->
     % callback again
     code:purge(dpi).
 
+load_slave_twice_test() ->
+    % calling load with the same node name and from same process 
+    % should not cause error
+    Node = dpi:load(?SLAVE),
+    ?assertEqual(Node, dpi:load(?SLAVE)),
+    ?assertEqual(unloaded, dpi:unload(Node)).
+
 slave_reuse_test() ->
 
     % single load / unload test
