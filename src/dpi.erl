@@ -56,15 +56,15 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
 unload(SlaveNode) when is_atom(SlaveNode) ->
     case lists:keytake(self(), 2, get_reg_pids(SlaveNode)) of
         false ->
-            io:format("!!!! self() not in reg_pids : ~p~n", [get_reg_pids(SlaveNode)]),
+            io:format("!!!! self() ~p not in reg_pids : ~p~n", [self(), get_reg_pids(SlaveNode)]),
             ok;
         {value, {Name, _}, []} ->
-            io:format("#### self() found unregister and unloading~n"),
+            io:format("#### self() ~p found unregister and unloading~n", [self()]),
             global:unregister_name(Name),
             slave:stop(SlaveNode),
             unloaded;
         {value, {Name, _}, R} ->
-            io:format("@@@@ self() found unregister ~p~n", [R]),
+            io:format("@@@@ self() ~p found unregister ~p~n", [R, self()]),
             global:unregister_name(Name),
             ok
     end.
