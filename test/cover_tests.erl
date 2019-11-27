@@ -1754,6 +1754,7 @@ slave_reuse_test() ->
     ?assertEqual([self()], reg_pids(Node)),
     ?assertEqual(unloaded, dpi:unload(Node)),
     ?assertEqual([], reg_pids(Node)),
+    ?assertEqual([], nodes(hidden)),
 
     % multiple load / unload test
     RxTO = 1000,
@@ -1816,7 +1817,6 @@ slave_reuse_test() ->
     ?assertEqual([Node], nodes(hidden)),
 
     % console cleanup simulation after last process carsh
-    Node = dpie:load(?SLAVE),
     ?assertEqual(unloaded, dpi:unload(Node)),
     ?assertEqual([], reg_pids(Node)),
     ?assertEqual([], nodes(hidden)).
