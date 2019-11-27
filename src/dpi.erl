@@ -62,7 +62,8 @@ unload(SlaveNode) when is_atom(SlaveNode) ->
             slave:stop(SlaveNode),
             unloaded;
         {value, {Name, _}, _} ->
-            ok = global:unregister_name(Name)
+            global:unregister_name(Name),
+            ok
     end.
 
 %===============================================================================
