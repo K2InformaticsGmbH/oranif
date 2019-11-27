@@ -42,19 +42,10 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
                         Error -> Error
                     end;
                 {error, {already_running, SlaveNode}} ->
-                    Result = lists:foldl(
-                        fun(Name, Acc) ->
-                            case global:whereis_name(Name) of
-                                Pid when Pid == self() ->
-                                    registered;
-                                _ ->
-                                    Acc
-                            end
-                        end, none, get_reg_names(SlaveNode)),
-                    case Result of
-                        registered ->
+                    case lists:keyfind(self(), 2, get_reg_pids(SlaveNode)) of
+                        {_, _} ->
                             SlaveNode;
-                        none ->
+                        false ->
                             reg(SlaveNode)
                     end;
                 Error -> Error
@@ -63,26 +54,15 @@ load(SlaveNodeName) when is_atom(SlaveNodeName) ->
 
 -spec unload(atom()) -> ok | unloaded.
 unload(SlaveNode) when is_atom(SlaveNode) ->
-    UnloadingPid = self(),
-    case lists:foldl(
-        fun(Name, Acc) ->
-            Pid = global:whereis_name(Name),
-            case
-                is_pid(Pid) andalso
-                Pid /= UnloadingPid andalso
-                rpc:call(node(Pid), erlang, is_process_alive, [Pid])
-            of
-                true -> [Pid | Acc];
-                _ ->
-                    ok = global:unregister_name(Name),
-                    Acc
-            end
-        end, [], get_reg_names(SlaveNode)
-    ) of
-        [] ->
-          slave:stop(SlaveNode),
-          unloaded;
-        _ -> ok
+    case lists:keytake(self(), 2, get_reg_pids(SlaveNode)) of
+        false ->
+            ok;
+        {value, {Name, _}, []} ->
+            global:unregister_name(Name),
+            slave:stop(SlaveNode),
+            unloaded;
+        {value, {Name, _}, _} ->
+            ok = global:unregister_name(Name)
     end.
 
 %===============================================================================
@@ -121,7 +101,7 @@ load_unsafe() ->
 %===============================================================================
 
 reg(SlaveNode) ->
-    Name = {?MODULE, SlaveNode, node(), make_ref()},
+    Name = {?MODULE, SlaveNode, make_ref()},
     case global:register_name(Name, self()) of
         yes -> SlaveNode;
         no -> {error, "failed to register process globally"}
@@ -176,16 +156,16 @@ safe(SlaveNode, Fun, Args) when is_function(Fun), is_list(Args) ->
 safe(SlaveNode, Fun) when is_function(Fun)->
     slave_call(SlaveNode, erlang, apply, [Fun, []]).
 
--spec get_reg_names(atom()) -> [{atom, node(), node(), reference()}].
-get_reg_names(SlaveNode) ->
-    get_reg_names(SlaveNode, global:registered_names(), []).
+-spec get_reg_pids(atom()) -> [{atom, node(), node(), reference()}].
+get_reg_pids(SlaveNode) ->
+    get_reg_pids(SlaveNode, global:registered_names(), []).
 
--spec get_reg_names(atom(), list(), list()) -> [{atom, node(), node(), reference()}].
-get_reg_names(_SlaveNode, [], Acc) ->
+-spec get_reg_pids(atom(), list(), list()) -> [{atom, node(), node(), reference()}].
+get_reg_pids(_SlaveNode, [], Acc) ->
     Acc;
-get_reg_names(SlaveN, [{?MODULE, SN, N, _} = Name | Rest], Acc) when SN == SlaveN, N == node() ->
-    get_reg_names(SlaveN, Rest, [Name | Acc]);
-get_reg_names(SlaveNode, [_ | Rest], Acc) ->
-    get_reg_names(SlaveNode, Rest, Acc).
+get_reg_pids(SlaveN, [{?MODULE, SN, _} = Name | Rest], Acc) when SN == SlaveN ->
+    get_reg_pids(SlaveN, Rest, [{Name, global:whereis_name(Name)} | Acc]);
+get_reg_pids(SlaveNode, [_ | Rest], Acc) ->
+    get_reg_pids(SlaveNode, Rest, Acc).
 
 resource_count() -> ?NIF_NOT_LOADED.
