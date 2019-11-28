@@ -1739,6 +1739,13 @@ load_test() ->
     % callback again
     code:purge(dpi).
 
+load_slave_twice_test() ->
+    % calling load with the same node name and from same process 
+    % should not cause error
+    Node = dpi:load(?SLAVE),
+    ?assertEqual(Node, dpi:load(?SLAVE)),
+    ?assertEqual(unloaded, dpi:unload(Node)).
+
 slave_reuse_test() ->
 
     % single load / unload test
@@ -1747,6 +1754,7 @@ slave_reuse_test() ->
     ?assertEqual([self()], reg_pids(Node)),
     ?assertEqual(unloaded, dpi:unload(Node)),
     ?assertEqual([], reg_pids(Node)),
+    ?assertEqual([], nodes(hidden)),
 
     % multiple load / unload test
     RxTO = 1000,
@@ -1829,7 +1837,7 @@ slave_client_proc(TestPid) ->
 reg_pids(Node) ->
     lists:filtermap(
         fun
-            ({dpi, N, SN, _} = Name) when N == Node, SN == node() ->
+            ({dpi, N, _} = Name) when N == Node ->
                 case global:whereis_name(Name) of
                     Pid when is_pid(Pid) -> {true, Pid};
                     _ -> false
