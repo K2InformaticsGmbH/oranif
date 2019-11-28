@@ -57,7 +57,7 @@ unload(SlaveNode) when is_atom(SlaveNode) ->
     RegPids = get_reg_pids(SlaveNode),
     case {lists:keytake(self(), 2, RegPids), RegPids} of
         {false, []} ->
-            slave:stop(),
+            slave:stop(SlaveNode),
             unloaded;
         {false, _} ->
             ok;
