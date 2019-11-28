@@ -60,15 +60,12 @@ unload(SlaveNode) when is_atom(SlaveNode) ->
             slave:stop(),
             unloaded;
         {false, _} ->
-            io:format("!!!! self() ~p not in reg_pids : ~p~n", [self(), get_reg_pids(SlaveNode)]),
             ok;
         {{value, {Name, _}, []}, _} ->
-            io:format("#### self() ~p found unregister and unloading ~p~n", [self(), get_reg_pids(SlaveNode)]),
             global:unregister_name(Name),
             slave:stop(SlaveNode),
             unloaded;
-        {{value, {Name, _}, R}, _} ->
-            io:format("@@@@ self() ~p found unregister ~p~n", [self(), get_reg_pids(SlaveNode)]),
+        {{value, {Name, _}, _}, _} ->
             global:unregister_name(Name),
             ok
     end.
@@ -172,7 +169,14 @@ get_reg_pids(SlaveNode) ->
 get_reg_pids(_SlaveNode, [], Acc) ->
     Acc;
 get_reg_pids(SlaveN, [{?MODULE, SN, _} = Name | Rest], Acc) when SN == SlaveN ->
-    get_reg_pids(SlaveN, Rest, [{Name, global:whereis_name(Name)} | Acc]);
+    NewAcc = case global:whereis_name(Name) of
+        undefined ->
+            global:unregister_name(Name),
+            Acc;
+        Pid ->
+            [{Name, Pid} | Acc]
+    end,
+    get_reg_pids(SlaveN, Rest, NewAcc);
 get_reg_pids(SlaveNode, [_ | Rest], Acc) ->
     get_reg_pids(SlaveNode, Rest, Acc).
 
