@@ -1207,7 +1207,7 @@ dataSetInt64(#{session := Conn} = TestCtx) ->
     dpiCall(TestCtx, data_release, [Data]),
     #{var := Var, data := [Data1]} = dpiCall(
         TestCtx, conn_newVar, [
-            Conn, 'DPI_ORACLE_TYPE_INTERVAL_YM', 'DPI_NATIVE_TYPE_INTERVAL_YM',
+            Conn, 'DPI_ORACLE_TYPE_NUMBER', 'DPI_NATIVE_TYPE_INT64',
             1, 1, true, true, null
         ]
     ),
