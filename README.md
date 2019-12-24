@@ -8,6 +8,17 @@ Oracle Call Interface driver using dirty NIFs. Requires Erlang/OTP 20 or later w
 ## Development
 Currently builds in Window, Linux and OS X
 
+#### Create Environment variables (Windows Only)
+```
+OTP_ERTS_DIR       = path to erlang run time system
+```
+Example `.bashrc` snippet:
+```sh
+...
+export OTP_ERTS_DIR=$(find /usr/lib/erlang/ -maxdepth 1 -type d -name erts-*)
+...
+```
+
 ## Compile (all OSs)
 
 ```sh
@@ -51,19 +62,6 @@ lcov --directory . --capture --output-file coverage.info
 lcov --list coverage.info
 ```
 
-#### Create Environment variables
-```
-OTP_ERTS_DIR       = path to erlang run time system
-ERL_INTERFACE_DIR  = path to erl_interface or erlang installation
-```
-Example `.bashrc` snippet:
-```sh
-...
-export OTP_ERTS_DIR=$(find /usr/lib/erlang/ -maxdepth 1 -type d -name erts-*)
-export ERL_INTERFACE_DIR=$(find /usr/lib/erlang/lib/ -maxdepth 1 -type d -name erl_interface-*)
-...
-```
-
 ## Testing
 There are some eunit tests which can be executed through `rebar3 do clean, compile, eunit` (Oracle Server connect info **MUST** be supplied through `tests/connect.config` first).
 
@@ -73,8 +71,8 @@ C:\> sqlplus system
 ```
 ```sql
 EXEC DBMS_XDB.SETLISTENERLOCALACCESS(FALSE);
+alter session set "_ORACLE_SCRIPT"=true; -- mandatory >= Oracle 12c 
 create user scott identified by tiger;
-alter session set "_ORACLE_SCRIPT"=true; -- if 'create user scott...' results into ORA-65096
 
 grant alter system to scott;
 grant create session to scott;
