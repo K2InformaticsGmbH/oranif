@@ -365,6 +365,30 @@ DPI_NIF_FUN(data_get)
         dataRet = enif_make_binary(env, &bin);
     }
     break;
+    case DPI_NATIVE_TYPE_LOB:
+    {
+        ErlNifBinary bin;
+        uint64_t lobSize;
+        uint64_t numBytes;
+        char *clob;
+
+        if (dpiLob_getSize(data->value.asLOB, &lobSize) < 0) {
+            RAISE_STR_EXCEPTION("Error during getting size of clob");
+        }
+
+        clob = malloc(lobSize);
+        numBytes = lobSize;
+
+        if (dpiLob_readBytes(data->value.asLOB, 1, lobSize, clob, &numBytes) < 0) {
+            RAISE_STR_EXCEPTION("Error during reading clob");
+        }
+
+        enif_alloc_binary(numBytes, &bin);
+        memcpy(bin.data, clob, numBytes);
+
+        dataRet = enif_make_binary(env, &bin);
+    }
+    break;
     default:
         RAISE_STR_EXCEPTION("Unsupported nativeTypeNum");
     }
